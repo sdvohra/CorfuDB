@@ -223,18 +223,23 @@ public class CheckpointSmokeTest extends AbstractViewTest {
         cpw.setBatchSize(4);
 
         // Write all CP data.
-        long startAddress = cpw.startCheckpoint();
-        List<Long> continuationAddrs = cpw.appendObjectState();
-        long endAddress = cpw.finishCheckpoint();
+        r.getObjectsView().TXBegin();
+        try {
+            long startAddress = cpw.startCheckpoint();
+            List<Long> continuationAddrs = cpw.appendObjectState();
+            long endAddress = cpw.finishCheckpoint();
         /* System.err.printf("DBG: wrote %d CP records\n", 1 + continuationAddrs.size() + 1); */
 
-        // Instantiate new runtime & map.  All map entries (except 'just one more')
-        // should have fudgeFactor added.
-        setRuntime();
-        Map<String, Long> m2 = instantiateMap(streamName);
-        for (int i = 0; i < numKeys; i++) {
-            assertThat(m2.get(keyPrefix + Integer.toString(i))).describedAs("get " + i)
-                    .isEqualTo(i + fudgeFactor);
+            // Instantiate new runtime & map.  All map entries (except 'just one more')
+            // should have fudgeFactor added.
+            setRuntime();
+            Map<String, Long> m2 = instantiateMap(streamName);
+            for (int i = 0; i < numKeys; i++) {
+                assertThat(m2.get(keyPrefix + Integer.toString(i))).describedAs("get " + i)
+                        .isEqualTo(i + fudgeFactor);
+            }
+        } finally {
+            r.getObjectsView().TXAbort();
         }
     }
 
@@ -309,13 +314,12 @@ public class CheckpointSmokeTest extends AbstractViewTest {
         });
 
         // Write all CP data + interleaving middle map updates
-        long startAddress = cpw.startCheckpoint();
-        List<Long> continuationAddrs = cpw.appendObjectState();
-        long endAddress = cpw.finishCheckpoint();
+        List<Long> addresses = cpw.appendCheckpoint();
+        long startAddress = addresses.get(0);
         // Batch size is 1, so there should be 1 CONTINUATION
         // entry for each of the numKeys put()s that we wrote
         // for keyPrefixFirst.
-        assertThat(continuationAddrs.size()).isEqualTo(numKeys);
+        assertThat(addresses.size()).isEqualTo(numKeys + 2);
 
         // Write last keys
         for (int i = 0; i < numKeys; i++) {

@@ -316,7 +316,7 @@ public class BackpointerStreamView extends AbstractQueuedStreamView {
             if (considerCheckpoint) {
                 context.checkpointSuccessID = cpEntry.getCheckpointID();
                 context.checkpointSuccessNumEntries = 1L;
-                context.checkpointSuccessEstBytes = (long) currentEntry.getSizeEstimate();
+                context.checkpointSuccessBytes = (long) currentEntry.getSizeEstimate();
                 context.checkpointSuccessEndAddr = currentRead;
             }
         }
@@ -328,7 +328,7 @@ public class BackpointerStreamView extends AbstractQueuedStreamView {
             if (considerCheckpoint) {
                 context.readCpQueue.add(currentEntry.getGlobalAddress());
                 context.checkpointSuccessNumEntries++;
-                context.checkpointSuccessEstBytes += currentEntry.getSizeEstimate();
+                context.checkpointSuccessBytes += cpEntry.getSmrEntriesBytes();
                 if (cpEntry.getCpType().equals(CheckpointEntry.CheckpointEntryType.START)) {
                     long cpStartAddr;
                     if (cpEntry.getDict().get(CheckpointEntry.START_LOG_ADDRESS) != null) {

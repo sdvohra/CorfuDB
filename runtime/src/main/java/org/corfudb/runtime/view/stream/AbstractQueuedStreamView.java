@@ -349,7 +349,7 @@ public abstract class AbstractQueuedStreamView extends
         long checkpointSuccessStartAddr = Address.NEVER_READ;
         long checkpointSuccessEndAddr = Address.NEVER_READ;
         long checkpointSuccessNumEntries = 0L;
-        long checkpointSuccessEstBytes = 0L;
+        long checkpointSuccessBytes = 0L;
         // No need to keep track of # of DATA entries, use context.resolvedQueue.size()?
         long resolvedEstBytes = 0L;
 

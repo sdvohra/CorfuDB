@@ -1,8 +1,12 @@
 package org.corfudb.protocols.logprotocol;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.PooledByteBufAllocator;
-import lombok.*;
+import io.netty.buffer.UnpooledByteBufAllocator;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 import org.corfudb.protocols.wireprotocol.DataType;
 import org.corfudb.protocols.wireprotocol.LogData;
 import org.corfudb.runtime.CorfuRuntime;
@@ -35,6 +39,10 @@ public class CheckpointEntry extends LogEntry {
         public byte asByte() {
             return (byte) type;
         }
+
+        static final Map<Byte, CheckpointEntryType> typeMap =
+                Arrays.stream(CheckpointEntryType.values())
+                        .collect(Collectors.toMap(CheckpointEntryType::asByte, Function.identity()));
     };
 
     /**
@@ -73,8 +81,9 @@ public class CheckpointEntry extends LogEntry {
      *  May be present in any CheckpointEntryType, but typically
      *  used by CONTINUATION entries.
      */
-    @Getter @Setter
-    SMREntry[] smrEntries = null;
+    @Getter
+    @Setter
+    SMREntry[] smrEntries;
 
     /** Byte count of smrEntries in serialized form, zero
      *  if smrEntries.size() is zero or if value is unknown.
@@ -92,10 +101,6 @@ public class CheckpointEntry extends LogEntry {
         this.smrEntries = smrEntries;
     }
 
-    static final Map<Byte, CheckpointEntryType> typeMap =
-            Arrays.stream(CheckpointEntryType.values())
-                    .collect(Collectors.toMap(CheckpointEntryType::asByte, Function.identity()));
-
     /**
      * This function provides the remaining buffer. Child entries
      * should initialize their contents based on the buffer.
@@ -107,7 +112,7 @@ public class CheckpointEntry extends LogEntry {
     @Override
     void deserializeBuffer(ByteBuf b, CorfuRuntime rt) {
         super.deserializeBuffer(b, rt);
-        cpType = typeMap.get(b.readByte());
+        cpType = CheckpointEntryType.typeMap.get(b.readByte());
         long cpidMSB = b.readLong();
         long cpidLSB = b.readLong();
         checkpointID = new UUID(cpidMSB, cpidLSB);
@@ -125,7 +130,7 @@ public class CheckpointEntry extends LogEntry {
             smrEntries = new SMREntry[items];
             for (int i = 0; i < items; i++) {
                 int len = b.readInt();
-                ByteBuf rBuf = PooledByteBufAllocator.DEFAULT.buffer();
+                ByteBuf rBuf = UnpooledByteBufAllocator.DEFAULT.buffer();
                 b.readBytes(rBuf, len);
                 SMREntry e = (SMREntry) SMREntry.deserialize(rBuf, runtime);
                 // VersionLockedObject::syncStreamUnsafe checks this entry's
@@ -168,7 +173,7 @@ public class CheckpointEntry extends LogEntry {
             b.writeShort(smrEntries.length);
             int byteStart = b.readableBytes();
             for (int i = 0; i < smrEntries.length; i++) {
-                ByteBuf smrEntryABuf = PooledByteBufAllocator.DEFAULT.buffer();
+                ByteBuf smrEntryABuf = UnpooledByteBufAllocator.DEFAULT.buffer();
                 smrEntries[i].serialize(smrEntryABuf);
                 b.writeInt(smrEntryABuf.readableBytes());
                 b.writeBytes(smrEntryABuf);
@@ -200,33 +205,5 @@ public class CheckpointEntry extends LogEntry {
     private void serializeString(String s, ByteBuf b) {
         b.writeShort(s.length());
         b.writeBytes(s.getBytes());
-    }
-
-    /**
-     * Hex dump readable contents of ByteBuf to stdout.
-     *
-     * @param b ByteBuf with readable bytes available.
-     */
-    public static void dump(ByteBuf b) {
-        byte[] bulk = new byte[b.readableBytes()];
-        int oldReaderIndex = b.readerIndex();
-        b.readBytes(bulk, 0, b.readableBytes() - 1);
-        b.readerIndex(oldReaderIndex);
-        dump(bulk);
-    }
-
-    /**
-     * Hex dump contents of byte[] to stdout.
-     *
-     * @param bulk Bytes.
-     */
-    public static void dump(byte[] bulk) {
-        if (bulk != null) {
-            System.out.printf("Bulk(%d): ", bulk.length);
-            for (int i = 0; i < bulk.length; i++) {
-                System.out.printf("%x,", bulk[i]);
-            }
-            System.out.printf("\n");
-        }
     }
 }

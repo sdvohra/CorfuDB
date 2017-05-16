@@ -9,6 +9,8 @@ import org.corfudb.protocols.logprotocol.SMREntry;
 import org.corfudb.runtime.collections.SMRMap;
 import org.corfudb.runtime.object.transactions.AbstractTransactionalContext;
 import org.corfudb.runtime.object.transactions.TransactionalContext;
+import org.corfudb.runtime.view.StreamsView;
+import org.corfudb.runtime.view.stream.AbstractQueuedStreamView;
 import org.corfudb.runtime.view.stream.BackpointerStreamView;
 import org.corfudb.util.serializer.Serializers;
 
@@ -70,7 +72,7 @@ public class CheckpointWriter {
 
     /** Local ref to the stream's view.
      */
-    BackpointerStreamView sv;
+    StreamsView sv;
 
     /** Local ref to the object that we're dumping.
      *  TODO: generalize to all SMR objects.
@@ -83,48 +85,51 @@ public class CheckpointWriter {
         this.author = author;
         this.map = map;
         checkpointID = UUID.randomUUID();
-        sv = new BackpointerStreamView(rt, streamID);
+        // sv = new BackpointerStreamView(rt, streamID);
+        sv = rt.getStreamsView();
     }
 
     /** Static method for all steps necessary to append checkpoint
-     *  data for an SMRMap into its own stream.
+     *  data for an SMRMap into its own stream.  An optimistic
+     *  read-only transaction is used to freeze the contents of
+     *  the map while the checkpoint entries are written to
+     *  the stream.
      */
 
-    public static List<Long> appendCheckpoint(CorfuRuntime rt, UUID streamID, String author, SMRMap map) {
-        return appendCheckpoint(rt, streamID, author, map, cpw -> {});
+    public List<Long> appendCheckpoint() {
+        return appendCheckpoint(cpw -> {});
     }
 
     /**
-     *
-     * @param rt Runtime for this map
-     * @param streamID StreamID for this map's underlying stream
-     * @param author String to identify the author of this checkpoint
-     * @param map SMRMap do dump into this checkpoint
      * @param setupWriter Lambda to transform the new CheckPointWriter
      *                    object (e.g., change batch size, etc) prior
      *                    to use.
      * @return List of global addresses of all entries for this checkpoint.
      */
 
-    public static List<Long> appendCheckpoint(CorfuRuntime rt, UUID streamID, String author, SMRMap map,
-                                              Consumer<CheckpointWriter> setupWriter) {
+    public List<Long> appendCheckpoint(Consumer<CheckpointWriter> setupWriter) {
         List<Long> addrs = new ArrayList<>();
-        CheckpointWriter cpw = new CheckpointWriter(rt, streamID, author, map);
+        setupWriter.accept(this);
 
-        setupWriter.accept(cpw);
-        addrs.add(cpw.startCheckpoint());
-        addrs.addAll(cpw.appendObjectState());
-        addrs.add(cpw.finishCheckpoint());
-        return addrs;
+        rt.getObjectsView().TXBegin();
+        try {
+            addrs.add(startCheckpoint());
+            addrs.addAll(appendObjectState());
+            addrs.add(finishCheckpoint());
+            return addrs;
+        } finally {
+            rt.getObjectsView().TXAbort();
+        }
     }
 
     /** Append a checkpoint START record to this object's stream.
-     *  TX side-effect: We call TXBegin().
+     *
+     *  Corfu client transaction management, if desired, is the
+     *  caller's responsibility.
      *
      * @return Global log address of the START record.
      */
     public long startCheckpoint() {
-        rt.getObjectsView().TXBegin();
         startTime = LocalDateTime.now();
         AbstractTransactionalContext context = TransactionalContext.getCurrentContext();
         long txBeginGlobalAddress = context.getSnapshotTimestamp();
@@ -135,7 +140,7 @@ public class CheckpointWriter {
         ImmutableMap<String,String> mdKV = ImmutableMap.copyOf(this.mdKV);
         CheckpointEntry cp = new CheckpointEntry(CheckpointEntry.CheckpointEntryType.START,
                 author, checkpointID, mdKV, null);
-        startAddress = sv.append(cp, null, null);
+        startAddress = sv.append(Collections.singleton(streamID), cp, null);
         postAppendFunc.accept(cp, startAddress);
         return startAddress;
     }
@@ -144,6 +149,9 @@ public class CheckpointWriter {
      *  object's stream.  Each will contain a fraction of
      *  the state of the object that we're checkpointing
      *  (up to batchSize items at a time).
+     *
+     *  Corfu client transaction management, if desired, is the
+     *  caller's responsibility.
      *
      *  The Iterators class appears to preserve the laziness
      *  of Stream processing; we don't wish to use more
@@ -159,8 +167,6 @@ public class CheckpointWriter {
      *  at the end of this function.  Any Corfu data
      *  modifying ops will be undone by the TXAbort().
      *
-     *  TX side-effect: We call TXAbort().
-     *
      * @return Stream of global log addresses of the
      * CONTINUATION records written.
      */
@@ -168,38 +174,39 @@ public class CheckpointWriter {
         ImmutableMap<String,String> mdKV = ImmutableMap.copyOf(this.mdKV);
         List<Long> continuationAddresses = new ArrayList<>();
 
-        try {
-            Iterators.partition(map.keySet().stream()
-                    .map(k -> {
-                        return new SMREntry("put",
-                                new Object[]{keyMutator.apply(k), valueMutator.apply(map.get(k))},
-                                Serializers.JSON);
-                    }).iterator(), batchSize)
-                    .forEachRemaining(entries -> {
-                        // Convert Object[] to SMREntry[], combined with byte count.
-                        // java.lang.ClassCastException: [Ljava.lang.Object; cannot be cast to [Lorg.corfudb.protocols.logprotocol.SMREntry;
-                        int numEntries = ((List) entries).size();
-                        SMREntry e[] = new SMREntry[numEntries];
-                        for (int i = 0; i < numEntries; i++) {
-                            e[i] = (SMREntry) ((List) entries).get(i);
-                        }
-                        CheckpointEntry cp = new CheckpointEntry(CheckpointEntry.CheckpointEntryType.CONTINUATION,
-                                author, checkpointID, mdKV, e);
-                        long pos = sv.append(cp, null, null);
-                        postAppendFunc.accept(cp, pos);
-                        continuationAddresses.add(pos);
-                        numEntries++;
-                        // CheckpointEntry::serialize() has a side-effect we use
-                        // for an accurate count of serialized bytes of SRMEntries.
-                        numBytes += cp.getSmrEntriesBytes();
-                    });
-        } finally {
-            rt.getObjectsView().TXAbort();
-        }
+        Iterators.partition(map.keySet().stream()
+                .map(k -> {
+                    return new SMREntry("put",
+                            new Object[]{keyMutator.apply(k), valueMutator.apply(map.get(k))},
+                            Serializers.JSON);
+                }).iterator(), batchSize)
+                .forEachRemaining(entries -> {
+                    // Convert Object[] to SMREntry[], combined with byte count.
+                    // java.lang.ClassCastException: [Ljava.lang.Object; cannot be cast to [Lorg.corfudb.protocols.logprotocol.SMREntry;
+                    int numEntries = ((List) entries).size();
+                    SMREntry e[] = new SMREntry[numEntries];
+                    for (int i = 0; i < numEntries; i++) {
+                        e[i] = (SMREntry) ((List) entries).get(i);
+                    }
+                    CheckpointEntry cp = new CheckpointEntry(CheckpointEntry.CheckpointEntryType.CONTINUATION,
+                            author, checkpointID, mdKV, e);
+                    long pos = sv.append(Collections.singleton(streamID), cp, null);
+
+                    postAppendFunc.accept(cp, pos);
+                    continuationAddresses.add(pos);
+
+                    numEntries++;
+                    // CheckpointEntry::serialize() has a side-effect we use
+                    // for an accurate count of serialized bytes of SRMEntries.
+                    numBytes += cp.getSmrEntriesBytes();
+                });
         return continuationAddresses;
     }
 
     /** Append a checkpoint END record to this object's stream.
+     *
+     *  Corfu client transaction management, if desired, is the
+     *  caller's responsibility.
      *
      * @return Global log address of the END record.
      */
@@ -212,18 +219,11 @@ public class CheckpointWriter {
         mdKV.put(CheckpointEntry.ENTRY_COUNT, Long.toString(numEntries));
         mdKV.put(CheckpointEntry.BYTE_COUNT, Long.toString(numBytes));
 
-        try {
-            CheckpointEntry cp = new CheckpointEntry(CheckpointEntry.CheckpointEntryType.END,
-                    author, checkpointID, mdKV, null);
-            endAddress = sv.append(cp, null, null);
-            postAppendFunc.accept(cp, endAddress);
-            return endAddress;
-        } finally {
-            try {
-                rt.getObjectsView().TXEnd();
-            } catch (Exception e) {
-                // nothing to do
-            }
-        }
+        CheckpointEntry cp = new CheckpointEntry(CheckpointEntry.CheckpointEntryType.END,
+                author, checkpointID, mdKV, null);
+        endAddress = sv.append(Collections.singleton(streamID), cp, null);
+
+        postAppendFunc.accept(cp, endAddress);
+        return endAddress;
     }
 }
