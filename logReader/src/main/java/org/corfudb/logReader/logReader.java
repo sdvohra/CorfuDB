@@ -221,7 +221,7 @@ public class logReader {
                 System.out.println("DataType: CHECKPOINT");
                 break;
             default:
-                System.out.printf("UNKNOWN DataType %s\n", dt.toString());
+                System.out.printf("UNKNOWN DataType %s\n", dt);
                 break;
         }
         if (showBinary) {

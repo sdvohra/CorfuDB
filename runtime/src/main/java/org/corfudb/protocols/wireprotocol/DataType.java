@@ -14,18 +14,20 @@ import java.util.stream.Collectors;
  */
 @AllArgsConstructor
 public enum DataType implements ICorfuPayload<DataType> {
-    DATA(0, true),
-    EMPTY(1, false),
-    HOLE(2, true),
-    TRIMMED(3, false),
-    RANK_ONLY(4, true),
-    CHECKPOINT(5, true);
+    DATA(0, true, true),
+    EMPTY(1, false, false),
+    HOLE(2, true, false),
+    TRIMMED(3, false, false),
+    RANK_ONLY(4, true, false),
+    CHECKPOINT(5, true, true);
 
     final int val;
 
     @Getter
     private boolean metadataAware;
 
+    @Getter
+    private boolean contentAware;
 
     byte asByte() {
         return (byte) val;
