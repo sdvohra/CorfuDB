@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Map;
+import java.util.UUID;
 
 public class logReader {
     private static int metadataSize;
@@ -234,7 +235,12 @@ public class logReader {
                 dr.hasUuidLeastSignificant() ? dr.getUuidLeastSignificant() : 0L);
         System.out.format("Commit: ");
         System.out.println(entry.getCommit());
-
+        if (entry.getDataType() == DataType.CHECKPOINT) {
+            System.out.format("Checkpoint type: %s, ID %s\n",
+                    entry.getCheckpointEntryType(),
+                    new UUID(entry.hasCheckpointIDMostSignificant() ? entry.getCheckpointIDMostSignificant() : 0L,
+                             entry.hasCheckpointIDLeastSignificant() ? entry.getCheckpointIDLeastSignificant() : 0L));
+        }
     }
 
     // Read and conditionally replace a record

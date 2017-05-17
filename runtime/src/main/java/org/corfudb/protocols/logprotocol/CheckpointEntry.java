@@ -28,9 +28,9 @@ public class CheckpointEntry extends LogEntry {
 
     @RequiredArgsConstructor
     public enum CheckpointEntryType {
-        START(1),           // Mandatory: 1st record in checkpoint
-        CONTINUATION(2),    // Optional: 2nd through (n-1)th record
-        END(3);             // Mandatory: final record checkpoint
+        START(0),           // Mandatory: 1st record in checkpoint
+        CONTINUATION(1),    // Optional: 2nd through (n-1)th record
+        END(2);             // Mandatory: final record checkpoint
 
         public final int type;
 
