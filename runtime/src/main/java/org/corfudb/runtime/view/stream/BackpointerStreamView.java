@@ -3,6 +3,7 @@ package org.corfudb.runtime.view.stream;
 import lombok.extern.slf4j.Slf4j;
 import org.corfudb.protocols.wireprotocol.DataType;
 import org.corfudb.protocols.wireprotocol.ILogData;
+import org.corfudb.protocols.wireprotocol.IMetadata;
 import org.corfudb.protocols.wireprotocol.TokenResponse;
 import org.corfudb.protocols.logprotocol.CheckpointEntry;
 import org.corfudb.runtime.CorfuRuntime;
@@ -251,8 +252,7 @@ public class BackpointerStreamView extends AbstractQueuedStreamView {
             // we add it to the read queue.
             if (currentEntry.containsStream(context.id)) {
                 if (currentEntry.getType() == DataType.CHECKPOINT) {
-                    CheckpointEntry cpEntry = (CheckpointEntry) currentEntry.getPayload(runtime);
-                    examineCheckpointRecord(context, currentEntry, cpEntry,
+                    examineCheckpointRecord(context, currentEntry,
                             considerCheckpoint, currentRead);
                 } else {
                     context.readQueue.add(currentRead);
@@ -307,10 +307,16 @@ public class BackpointerStreamView extends AbstractQueuedStreamView {
     }
 
     private void examineCheckpointRecord(final QueuedStreamContext context,
-                                         ILogData currentEntry, CheckpointEntry cpEntry,
+                                         ILogData currentEntry,
                                          boolean considerCheckpoint, long currentRead) {
+        CheckpointEntry.CheckpointEntryType cpType = (CheckpointEntry.CheckpointEntryType)
+                currentEntry.getMetadataMap().get(IMetadata.LogUnitMetadataType.CHECKPOINT_TYPE);
+        UUID cpID = (UUID)
+                currentEntry.getMetadataMap().get(IMetadata.LogUnitMetadataType.CHECKPOINT_ID);
+
         if (context.checkpointSuccessID == null &&
-                cpEntry.getCpType().equals(CheckpointEntry.CheckpointEntryType.END)) {
+                cpType == CheckpointEntry.CheckpointEntryType.END) {
+            CheckpointEntry cpEntry = (CheckpointEntry) currentEntry.getPayload(runtime);
             log.trace("Checkpoint: address {} found END, id {} author {}",
                     currentRead, cpEntry.getCheckpointID(), cpEntry.getCheckpointAuthorID());
             if (considerCheckpoint) {
@@ -321,7 +327,8 @@ public class BackpointerStreamView extends AbstractQueuedStreamView {
             }
         }
         if (context.checkpointSuccessID != null &&
-                context.checkpointSuccessID.equals(cpEntry.getCheckpointID())) {
+                context.checkpointSuccessID.equals(cpID)) {
+            CheckpointEntry cpEntry = (CheckpointEntry) currentEntry.getPayload(runtime);
             log.trace("Checkpoint: address {} type {} id {} author {}",
                     currentRead, cpEntry.getCpType(),
                     cpEntry.getCheckpointID(), cpEntry.getCheckpointAuthorID());
@@ -344,9 +351,7 @@ public class BackpointerStreamView extends AbstractQueuedStreamView {
                 }
             }
         } else {
-            log.trace("Checkpoint: skip address {} type {} id {} author {}",
-                    currentRead, cpEntry.getCpType(),
-                    cpEntry.getCheckpointID(), cpEntry.getCheckpointAuthorID());
+            log.trace("Checkpoint: skip address {} type {} id {}", currentRead, cpType, cpID);
         }
     }
 }

@@ -3,12 +3,16 @@ package org.corfudb.protocols.wireprotocol;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import lombok.Getter;
+import org.corfudb.protocols.logprotocol.CheckpointEntry;
 import org.corfudb.protocols.logprotocol.LogEntry;
 import org.corfudb.runtime.CorfuRuntime;
 import org.corfudb.util.serializer.Serializers;
 
 import java.util.EnumMap;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static org.corfudb.protocols.wireprotocol.IMetadata.LogUnitMetadataType.CHECKPOINT_ID;
+import static org.corfudb.protocols.wireprotocol.IMetadata.LogUnitMetadataType.CHECKPOINT_TYPE;
 
 /**
  * Created by mwei on 8/15/16.
@@ -134,6 +138,11 @@ public class LogData implements ICorfuPayload<LogData>, IMetadata, ILogData {
             ((LogEntry) object).setEntry(this);
         }
         this.metadataMap = new EnumMap<>(IMetadata.LogUnitMetadataType.class);
+        if (object instanceof CheckpointEntry) {
+            CheckpointEntry cp = (CheckpointEntry) object;
+            this.metadataMap.put(CHECKPOINT_TYPE, cp.getCpType());
+            this.metadataMap.put(CHECKPOINT_ID, cp.getCheckpointID());
+        }
     }
 
     public byte[] byteArrayFromBuf(final ByteBuf buf) {

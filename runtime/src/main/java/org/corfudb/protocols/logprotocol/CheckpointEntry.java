@@ -10,8 +10,6 @@ import lombok.ToString;
 import org.corfudb.protocols.wireprotocol.DataType;
 import org.corfudb.protocols.wireprotocol.LogData;
 import org.corfudb.runtime.CorfuRuntime;
-import org.corfudb.runtime.view.Address;
-import org.corfudb.util.serializer.Serializers;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -40,7 +38,7 @@ public class CheckpointEntry extends LogEntry {
             return (byte) type;
         }
 
-        static final Map<Byte, CheckpointEntryType> typeMap =
+        public static final Map<Byte, CheckpointEntryType> typeMap =
                 Arrays.stream(CheckpointEntryType.values())
                         .collect(Collectors.toMap(CheckpointEntryType::asByte, Function.identity()));
     };

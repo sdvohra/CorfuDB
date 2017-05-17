@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
+import org.corfudb.protocols.logprotocol.CheckpointEntry;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -113,7 +114,9 @@ public interface IMetadata {
         RANK(1, TypeToken.of(DataRank.class)),
         BACKPOINTER_MAP(3, new TypeToken<Map<UUID, Long>>() {}),
         GLOBAL_ADDRESS(4, TypeToken.of(Long.class)),
-        COMMIT(5, TypeToken.of(Boolean.class))
+        COMMIT(5, TypeToken.of(Boolean.class)),
+        CHECKPOINT_TYPE(6, TypeToken.of(CheckpointEntry.CheckpointEntryType.class)),
+        CHECKPOINT_ID(7, TypeToken.of(UUID.class))
         ;
         final int type;
         @Getter
