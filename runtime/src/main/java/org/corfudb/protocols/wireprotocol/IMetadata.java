@@ -19,6 +19,9 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static org.corfudb.protocols.wireprotocol.IMetadata.LogUnitMetadataType.CHECKPOINT_ID;
+import static org.corfudb.protocols.wireprotocol.IMetadata.LogUnitMetadataType.CHECKPOINT_TYPE;
+
 /**
  * Created by mwei on 9/18/15.
  */
@@ -107,6 +110,27 @@ public interface IMetadata {
 
     default void setCommit() {
         getMetadataMap().put(LogUnitMetadataType.COMMIT, true);
+    }
+
+    @Nullable
+    default CheckpointEntry.CheckpointEntryType getCheckpointType() {
+        return (CheckpointEntry.CheckpointEntryType) getMetadataMap()
+                .getOrDefault(LogUnitMetadataType.CHECKPOINT_TYPE,
+                        null);
+    }
+
+    default void setCheckpointType(CheckpointEntry.CheckpointEntryType type) {
+        getMetadataMap().put(CHECKPOINT_TYPE, type);
+    }
+
+    @Nullable
+    default UUID getCheckpointID() {
+        return (UUID) getMetadataMap().getOrDefault(LogUnitMetadataType.CHECKPOINT_ID,
+                null);
+    }
+
+    default void setCheckpointID(UUID ID) {
+        getMetadataMap().put(CHECKPOINT_ID, ID);
     }
 
     @RequiredArgsConstructor

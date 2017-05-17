@@ -3,7 +3,6 @@ package org.corfudb.runtime.view.stream;
 import lombok.extern.slf4j.Slf4j;
 import org.corfudb.protocols.wireprotocol.DataType;
 import org.corfudb.protocols.wireprotocol.ILogData;
-import org.corfudb.protocols.wireprotocol.IMetadata;
 import org.corfudb.protocols.wireprotocol.TokenResponse;
 import org.corfudb.protocols.logprotocol.CheckpointEntry;
 import org.corfudb.runtime.CorfuRuntime;
@@ -309,10 +308,8 @@ public class BackpointerStreamView extends AbstractQueuedStreamView {
     private void examineCheckpointRecord(final QueuedStreamContext context,
                                          ILogData currentEntry,
                                          boolean considerCheckpoint, long currentRead) {
-        CheckpointEntry.CheckpointEntryType cpType = (CheckpointEntry.CheckpointEntryType)
-                currentEntry.getMetadataMap().get(IMetadata.LogUnitMetadataType.CHECKPOINT_TYPE);
-        UUID cpID = (UUID)
-                currentEntry.getMetadataMap().get(IMetadata.LogUnitMetadataType.CHECKPOINT_ID);
+        CheckpointEntry.CheckpointEntryType cpType = currentEntry.getCheckpointType();
+        UUID cpID = currentEntry.getCheckpointID();
 
         if (context.checkpointSuccessID == null &&
                 cpType == CheckpointEntry.CheckpointEntryType.END) {
