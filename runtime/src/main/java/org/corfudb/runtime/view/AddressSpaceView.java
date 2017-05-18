@@ -90,12 +90,7 @@ public class AddressSpaceView extends AbstractView {
      */
     public void write(IToken token, Object data)
         throws OverwriteException {
-        final ILogData ld;
-        if (data instanceof CheckpointEntry) {
-            ld = new LogData(DataType.CHECKPOINT, data);
-        } else {
-            ld = new LogData(DataType.DATA, data);
-        }
+        final ILogData ld = new LogData(DataType.DATA, data);
 
         layoutHelper(l -> {
             // Check if the token issued is in the same
@@ -117,7 +112,7 @@ public class AddressSpaceView extends AbstractView {
 
         // Cache the successful write
         if (!runtime.isCacheDisabled()) {
-            if (ld.getType() == DataType.CHECKPOINT) {
+            if (ld.hasCheckpointMetadata()) {
                 CheckpointEntry cp = (CheckpointEntry) ld.getPayload(runtime);
                 if (cp.getSmrEntries() != null) {
                     for (int i = 0; i < cp.getSmrEntries().length; i++) {

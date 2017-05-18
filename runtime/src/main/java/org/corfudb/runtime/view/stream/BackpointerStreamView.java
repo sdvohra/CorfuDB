@@ -250,7 +250,7 @@ public class BackpointerStreamView extends AbstractQueuedStreamView {
             // If the entry contains this context's stream,
             // we add it to the read queue.
             if (currentEntry.containsStream(context.id)) {
-                if (currentEntry.getType() == DataType.CHECKPOINT) {
+                if (currentEntry.hasCheckpointMetadata()) {
                     examineCheckpointRecord(context, currentEntry,
                             considerCheckpoint, currentRead);
                 } else {

@@ -228,7 +228,6 @@ public class CheckpointSmokeTest extends AbstractViewTest {
             long startAddress = cpw.startCheckpoint();
             List<Long> continuationAddrs = cpw.appendObjectState();
             long endAddress = cpw.finishCheckpoint();
-        /* System.err.printf("DBG: wrote %d CP records\n", 1 + continuationAddrs.size() + 1); */
 
             // Instantiate new runtime & map.  All map entries (except 'just one more')
             // should have fudgeFactor added.
@@ -349,7 +348,7 @@ public class CheckpointSmokeTest extends AbstractViewTest {
                     .begin();
 
             assertThat(m2.entrySet())
-                    .describedAs("Snapshot at lobal log address " + globalAddr)
+                    .describedAs("Snapshot at global log address " + globalAddr)
                     .isEqualTo(expectedHistory.entrySet());
             r.getObjectsView().TXAbort();
         }

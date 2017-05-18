@@ -91,7 +91,7 @@ public class CheckpointEntry extends LogEntry {
 
     public CheckpointEntry(CheckpointEntryType type, String authorID, UUID checkpointID,
                            Map<String,String> dict, SMREntry[] smrEntries) {
-        super(LogEntryType.CHECKPOINT);
+        super(LogEntryType.SMR);
         this.cpType = type;
         this.checkpointID = checkpointID;
         this.checkpointAuthorID = authorID;
@@ -135,7 +135,7 @@ public class CheckpointEntry extends LogEntry {
                 // global log address for upcall management.  Checkpoint data
                 // doesn't leave any trace in those upcall results, but we
                 // need a stub of LogData to avoid crashing upcall management.
-                LogData l = new LogData(DataType.CHECKPOINT);
+                LogData l = new LogData(DataType.DATA);
                 e.setEntry(l);
                 smrEntries[i] = e;
             }

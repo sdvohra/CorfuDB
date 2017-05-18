@@ -218,9 +218,6 @@ public class logReader {
             case TRIMMED:
                 System.out.println("DataType: TRIMMED");
                 break;
-            case CHECKPOINT:
-                System.out.println("DataType: CHECKPOINT");
-                break;
             default:
                 System.out.printf("UNKNOWN DataType %s\n", dt);
                 break;
@@ -235,7 +232,7 @@ public class logReader {
                 dr.hasUuidLeastSignificant() ? dr.getUuidLeastSignificant() : 0L);
         System.out.format("Commit: ");
         System.out.println(entry.getCommit());
-        if (entry.getDataType() == DataType.CHECKPOINT) {
+        if (entry.hasCheckpointEntryType()) {
             System.out.format("Checkpoint type: %s, ID %s\n",
                     entry.getCheckpointEntryType(),
                     new UUID(entry.hasCheckpointIDMostSignificant() ? entry.getCheckpointIDMostSignificant() : 0L,

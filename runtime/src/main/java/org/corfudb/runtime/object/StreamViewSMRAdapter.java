@@ -1,7 +1,5 @@
 package org.corfudb.runtime.object;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.PooledByteBufAllocator;
 import org.corfudb.protocols.logprotocol.CheckpointEntry;
 import org.corfudb.protocols.logprotocol.ISMRConsumable;
 import org.corfudb.protocols.logprotocol.SMREntry;
@@ -47,12 +45,9 @@ public class StreamViewSMRAdapter implements ISMRStream {
     }
 
     private List<SMREntry> dataAndCheckpointMapper(ILogData logData) {
-        if (logData.getType() == DataType.DATA) {
-            return ((ISMRConsumable) logData.getPayload(runtime)).getSMRUpdates(streamView.getID());
-        } else {
+        if (logData.hasCheckpointMetadata()) {
             // This is a CHECKPOINT record.  Extract the SMREntries, if any.
             CheckpointEntry cp = (CheckpointEntry) logData.getPayload(runtime);
-            // TODO If housekeeping requires access to metadata in this record, do it here
             if (cp.getSmrEntries() != null && cp.getSmrEntries().length > 0) {
                 List<SMREntry> consumables = new ArrayList<>();
                 Collections.addAll(consumables, cp.getSmrEntries());
@@ -60,13 +55,15 @@ public class StreamViewSMRAdapter implements ISMRStream {
             } else {
                 return (List<SMREntry>) Collections.EMPTY_LIST;
             }
+        } else {
+            return ((ISMRConsumable) logData.getPayload(runtime)).getSMRUpdates(streamView.getID());
         }
     }
 
     public List<SMREntry> remainingUpTo(long maxGlobal) {
         return streamView.remainingUpTo(maxGlobal).stream()
-                .filter(m -> m.getType().isContentAware())
-                .filter(m -> m.getPayload(runtime) instanceof ISMRConsumable || m.getType() == DataType.CHECKPOINT)
+                .filter(m -> m.getType() == DataType.DATA)
+                .filter(m -> m.getPayload(runtime) instanceof ISMRConsumable || m.hasCheckpointMetadata())
                 .map(this::dataAndCheckpointMapper)
                 .flatMap(List::stream)
                 .collect(Collectors.toList());
@@ -120,8 +117,8 @@ public class StreamViewSMRAdapter implements ISMRStream {
     @Override
     public Stream<SMREntry> streamUpTo(long maxGlobal) {
         return streamView.streamUpTo(maxGlobal)
-                .filter(m -> m.getType().isContentAware())
-                .filter(m -> m.getPayload(runtime) instanceof ISMRConsumable || m.getType() == DataType.CHECKPOINT)
+                .filter(m -> m.getType() == DataType.DATA)
+                .filter(m -> m.getPayload(runtime) instanceof ISMRConsumable || m.hasCheckpointMetadata())
                 .map(this::dataAndCheckpointMapper)
                 .flatMap(List::stream);
     }

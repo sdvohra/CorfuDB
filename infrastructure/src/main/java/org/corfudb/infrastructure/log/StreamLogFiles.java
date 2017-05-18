@@ -729,7 +729,7 @@ public class StreamLogFiles implements StreamLog, StreamLogWithRankedAddressSpac
         if (rank.isPresent()) {
             logEntryBuilder.setRank(rank.get());
         }
-        if (entry.getCheckpointType() != null) {
+        if (entry.hasCheckpointMetadata()) {
             logEntryBuilder.setCheckpointEntryType(Types.CheckpointEntryType.forNumber(entry.getCheckpointType().ordinal()));
             logEntryBuilder.setCheckpointIDMostSignificant(entry.getCheckpointID().getMostSignificantBits());
             logEntryBuilder.setCheckpointIDLeastSignificant(entry.getCheckpointID().getLeastSignificantBits());

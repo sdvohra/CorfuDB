@@ -112,6 +112,11 @@ public interface IMetadata {
         getMetadataMap().put(LogUnitMetadataType.COMMIT, true);
     }
 
+    default boolean hasCheckpointMetadata() {
+        return getCheckpointType() != null &&
+               getCheckpointID() != null;
+    }
+
     @Nullable
     default CheckpointEntry.CheckpointEntryType getCheckpointType() {
         return (CheckpointEntry.CheckpointEntryType) getMetadataMap()

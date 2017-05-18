@@ -96,7 +96,7 @@ public class LogData implements ICorfuPayload<LogData>, IMetadata, ILogData {
 
     public LogData(ByteBuf buf) {
         type = ICorfuPayload.fromBuffer(buf, DataType.class);
-        if (type.isContentAware()) {
+        if (type == DataType.DATA) {
             data = ICorfuPayload.fromBuffer(buf, byte[].class);
         } else {
             data = null;
@@ -165,7 +165,7 @@ public class LogData implements ICorfuPayload<LogData>, IMetadata, ILogData {
 
     void doSerializeInternal(ByteBuf buf) {
         ICorfuPayload.serialize(buf, type);
-        if (type.isContentAware()) {
+        if (type == DataType.DATA) {
             if (data == null) {
                 int lengthIndex = buf.writerIndex();
                 buf.writeInt(0);
