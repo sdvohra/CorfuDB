@@ -2,7 +2,6 @@ package org.corfudb.samples;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
-import org.corfudb.annotations.CorfuObject;
 import org.corfudb.runtime.CorfuRuntime;
 import org.corfudb.util.GitRepositoryState;
 import org.docopt.Docopt;
@@ -44,13 +43,8 @@ public class GraphDBLauncher {
          * which is a Java object that contains all of the Corfu utilities exposed to applications.
          */
         CorfuRuntime runtime = getRuntimeAndConnect(corfuConfigurationString);
-        System.out.println(runtime);
 
-        GraphDB d = runtime.getObjectsView()
-                .build()
-                .setStreamName("A")     // stream name
-                .setType(GraphDB.class) // object class backed by this stream
-                .open();                // instantiate the object!
+        GraphDB d = new GraphDB(runtime);
 
         d.addNode("Alice" + d.getNumNodes());
         d.addNode("Bob" + d.getNumNodes());
