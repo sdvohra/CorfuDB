@@ -1,25 +1,20 @@
 package org.corfudb.samples;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-import org.corfudb.runtime.CorfuRuntime;
-import org.corfudb.runtime.collections.SMRMap;
-import org.corfudb.util.GitRepositoryState;
-import org.docopt.Docopt;
-import org.slf4j.LoggerFactory;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * Created by shriyav on 5/25/17.
  */
 
-public class GraphDB {
-    private SMRMap<String, Node> vertices;
+public class GraphDBHM {
+    private HashMap<String, Node> vertices;
 
     private Tracer t;
     private boolean isTracing;
@@ -95,12 +90,8 @@ public class GraphDB {
         isTracing = false;
     }
 
-    public GraphDB(CorfuRuntime runtime) {
-        vertices = runtime.getObjectsView()
-                .build()
-                .setStreamName("A")     // stream name
-                .setType(SMRMap.class)  // object class backed by this stream
-                .open();                // instantiate the object!
+    public GraphDBHM() {
+        vertices = new HashMap<>();
         t = new Tracer();
         isTracing = false;
     }
@@ -141,7 +132,7 @@ public class GraphDB {
     /** Returns an iterable of names of all vertices adjacent to v. */
     Iterable<String> adjacent(String v) { // modify with pointers
         if (isTracing) {
-            t.updateArgs("GraphDBTest", "adjacent", 0, Thread.currentThread().getId(),
+            t.updateArgs("GraphDBHMTest", "adjacent", 0, Thread.currentThread().getId(),
                     System.currentTimeMillis(), "B", null);
         }
 
@@ -158,7 +149,7 @@ public class GraphDB {
         // end method
 
         if (isTracing) {
-            t.updateArgs("GraphDBTest", "adjacent", 0, Thread.currentThread().getId(),
+            t.updateArgs("GraphDBHMTest", "adjacent", 0, Thread.currentThread().getId(),
                     System.currentTimeMillis(), "E", null);
         }
         return returnVal;
@@ -208,7 +199,7 @@ public class GraphDB {
 
     ArrayList<Node> preDFS(Node f) {
         if (isTracing) {
-            t.updateArgs("GraphDBTest", "preDFS", 0, Thread.currentThread().getId(),
+            t.updateArgs("GraphDBHMTest", "preDFS", 0, Thread.currentThread().getId(),
                     System.currentTimeMillis(), "B", null);
         }
 
@@ -217,7 +208,7 @@ public class GraphDB {
         // end method
 
         if (isTracing) {
-            t.updateArgs("GraphDBTest", "preDFS", 0, Thread.currentThread().getId(),
+            t.updateArgs("GraphDBHMTest", "preDFS", 0, Thread.currentThread().getId(),
                     System.currentTimeMillis(), "E", null);
         }
         return returnVal;
@@ -225,7 +216,7 @@ public class GraphDB {
 
     ArrayList<Node> postDFS(Node f) {
         if (isTracing) {
-            t.updateArgs("GraphDBTest", "postDFS", 0, Thread.currentThread().getId(),
+            t.updateArgs("GraphDBHMTest", "postDFS", 0, Thread.currentThread().getId(),
                     System.currentTimeMillis(), "B", null);
         }
 
@@ -234,7 +225,7 @@ public class GraphDB {
         // end method
 
         if (isTracing) {
-            t.updateArgs("GraphDBTest", "postDFS", 0, Thread.currentThread().getId(),
+            t.updateArgs("GraphDBHMTest", "postDFS", 0, Thread.currentThread().getId(),
                     System.currentTimeMillis(), "E", null);
         }
         return returnVal;
@@ -242,7 +233,7 @@ public class GraphDB {
 
     ArrayList<Node> BFS(Node f) {
         if (isTracing) {
-            t.updateArgs("GraphDBTest", "BFS", 0, Thread.currentThread().getId(),
+            t.updateArgs("GraphDBHMTest", "BFS", 0, Thread.currentThread().getId(),
                     System.currentTimeMillis(), "B", null);
         }
 
@@ -266,47 +257,14 @@ public class GraphDB {
         // end method
 
         if (isTracing) {
-            t.updateArgs("GraphDBTest", "BFS", 0, Thread.currentThread().getId(),
+            t.updateArgs("GraphDBHMTest", "BFS", 0, Thread.currentThread().getId(),
                     System.currentTimeMillis(), "E", null);
         }
         return ordered;
     }
 
-    private static final String USAGE = "Usage: GraphDBLauncher [-c <conf>]\n"
-            + "Options:\n"
-            + " -c <conf>     Set the configuration host and port  [default: localhost:9999]\n";
-
-    /**
-     * Internally, the corfuRuntime interacts with the CorfuDB service over TCP/IP sockets.
-     *
-     * @param configurationString specifies the IP:port of the CorfuService
-     *                            The configuration string has format "hostname:port", for example, "localhost:9090".
-     * @return a CorfuRuntime object, with which Corfu applications perform all Corfu operations
-     */
-    private static CorfuRuntime getRuntimeAndConnect(String configurationString) {
-        CorfuRuntime corfuRuntime = new CorfuRuntime(configurationString).connect();
-        return corfuRuntime;
-    }
-
     public static void main(String[] args) {
-        // Enabling logging
-        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
-        root.setLevel(Level.TRACE);
-
-        // Parse the options given, using docopt.
-        Map<String, Object> opts =
-                new Docopt(USAGE)
-                        .withVersion(GitRepositoryState.getRepositoryState().describe)
-                        .parse(args);
-        String corfuConfigurationString = (String) opts.get("-c");
-
-        /**
-         * First, the application needs to instantiate a CorfuRuntime,
-         * which is a Java object that contains all of the Corfu utilities exposed to applications.
-         */
-        CorfuRuntime runtime = getRuntimeAndConnect(corfuConfigurationString);
-
-        GraphDB d = new GraphDB(runtime);
+        GraphDBHM d = new GraphDBHM();
 
         d.addNode("A");
         d.addNode("B");
