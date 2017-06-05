@@ -2,6 +2,7 @@ package org.corfudb.samples.graph;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
+import com.google.common.collect.ImmutableList;
 import org.corfudb.runtime.CorfuRuntime;
 import org.corfudb.runtime.collections.SMRMap;
 import org.corfudb.util.GitRepositoryState;
@@ -115,6 +116,28 @@ public class GraphDB {
     public Node getNode(String name) { return vertices.get(name); }
 
     public void addNode(String name) { vertices.put(name, new Node(name)); }
+
+    public void addNode(String name, String type, Object[] params) {
+        if (type.equals("Transport Zone")) {
+            TransportZone tz = new TransportZone((UUID) params[0]);
+            vertices.put(name, tz);
+        } else if (type.equals("Logical Switch")) {
+            LogicalSwitch ls = new LogicalSwitch((UUID) params[0], (String) params[1], (UUID) params[2],
+                    (ArrayList<UUID>) params[3]);
+            vertices.put(name, ls);
+        } else if (type.equals("Logical Port")) {
+            LogicalPort lp = new LogicalPort((UUID) params[0], (UUID) params[1], (Attachment) params[2],
+                    (ImmutableList<UUID>) params[3]);
+            vertices.put(name, lp);
+        } else if (type.equals("Transport Node")) {
+            TransportNode tn = new TransportNode((UUID) params[0], (HashSet<UUID>) params[1]);
+            vertices.put(name, tn);
+        }
+    }
+
+    public void update(String name, Map<String, Object> properties) {
+        vertices.get(name).getProperties().putAll(properties);
+    }
 
     public void removeNode(String name) { vertices.remove(name); }
 
@@ -290,26 +313,7 @@ public class GraphDB {
         return corfuRuntime;
     }
 
-    public static void main(String[] args) {
-        // Enabling logging
-        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
-        root.setLevel(Level.TRACE);
-
-        // Parse the options given, using docopt.
-        Map<String, Object> opts =
-                new Docopt(USAGE)
-                        .withVersion(GitRepositoryState.getRepositoryState().describe)
-                        .parse(args);
-        String corfuConfigurationString = (String) opts.get("-c");
-
-        /**
-         * First, the application needs to instantiate a CorfuRuntime,
-         * which is a Java object that contains all of the Corfu utilities exposed to applications.
-         */
-        CorfuRuntime runtime = getRuntimeAndConnect(corfuConfigurationString);
-
-        GraphDB d = new GraphDB(runtime);
-
+    private static void testMethodsAndPerf(GraphDB d) {
         for (int i = 0; i < 2000; i++) {
             d.addNode("" + i);
         }
@@ -348,5 +352,59 @@ public class GraphDB {
         d.endMethodTrace();
 
         d.clear();
+    }
+
+    public static void main(String[] args) {
+        // Enabling logging
+        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+        root.setLevel(Level.TRACE);
+
+        // Parse the options given, using docopt.
+        Map<String, Object> opts =
+                new Docopt(USAGE)
+                        .withVersion(GitRepositoryState.getRepositoryState().describe)
+                        .parse(args);
+        String corfuConfigurationString = (String) opts.get("-c");
+
+        /**
+         * First, the application needs to instantiate a CorfuRuntime,
+         * which is a Java object that contains all of the Corfu utilities exposed to applications.
+         */
+        CorfuRuntime runtime = getRuntimeAndConnect(corfuConfigurationString);
+
+        GraphDB d = new GraphDB(runtime);
+        //d.testMethodsAndPerf(d);
+
+        // Create Transport Zone
+        Object[] p = new Object[1];
+        p[0] = new UUID(-3121351451739669003L, -7836414342361877842L);
+        d.addNode("TransportZone0", "TransportZone", p);
+        //props
+        HashMap<String, Object> hm = new HashMap<>();
+        hm.put("Description", "Transport Zone");
+        hm.put("HostSwitch", "HostSwitch0");
+        d.getNode("TransportZone0").properties = hm;
+
+        // Create Transport Nodes
+        for (int i = 0; i < 3; i++) {
+            for (int j = 1; j < 3; j++) {
+                p = new Object[3];
+                p[0] = UUID.randomUUID(); //new UUID(-7646002813284697009L, -7442247082943576294L);
+                HashSet<UUID> hs = new HashSet<>();
+                //hs.add(new UUID(-3121351451739669003L, -7836414342361877842L));
+                hs.add(UUID.randomUUID());
+                p[1] = hs;
+                p[2] = "TransportNode" + i + "." + j;
+                d.addNode("TransportNode" + i + "." + j, "Transport Node", p);
+                // props
+                hm = new HashMap<>();
+                hm.put("Description", "Transport Node");
+                hm.put("HostSwitch", "HostSwitch" + i);
+                d.getNode("TransportNode" + i + "." + j).properties = hm;
+            }
+        }
+
+        System.out.println(d);
+
     }
 }

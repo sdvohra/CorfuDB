@@ -1,6 +1,7 @@
 package org.corfudb.samples.graph;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -10,6 +11,7 @@ import java.util.Map;
 public class Node {
     private String name;
     private ArrayList<Edge> edges;
+    HashMap<String, Object> properties;
 
     public Node() {
         name = "";
@@ -35,5 +37,9 @@ public class Node {
 
     public void addEdge(Edge e) {
         edges.add(e);
+    }
+
+    public Map<String, Object> getProperties() {
+        return properties;
     }
 }
