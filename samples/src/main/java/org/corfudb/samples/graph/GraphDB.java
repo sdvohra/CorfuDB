@@ -2,8 +2,6 @@ package org.corfudb.samples.graph;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import org.corfudb.runtime.CorfuRuntime;
 import org.corfudb.runtime.collections.SMRMap;
 import org.corfudb.util.GitRepositoryState;
@@ -312,59 +310,38 @@ public class GraphDB {
 
         GraphDB d = new GraphDB(runtime);
 
-//        for (int i = 0; i < 2000; i++) {
-//            d.addNode("" + i);
-//        }
-//
-//        for (int i = 0; i < 1999; i++) {
-//            int temp = i + 1;
-//            d.addEdge("" + i, "" + temp);
-//            System.out.println(i);
-//        }
+        for (int i = 0; i < 2000; i++) {
+            d.addNode("" + i);
+        }
 
-        d.addNode("A");
-        d.addNode("B");
-        d.addNode("C");
-        d.addNode("D");
-        d.addNode("E");
-        d.addNode("F");
-        d.addNode("G");
-        d.addNode("H");
-        d.addNode("I");
-        d.addNode("J");
-
-        d.addEdge("A", "B");
-        d.addEdge("A", "C");
-        d.addEdge("B", "D");
-        d.addEdge("B", "E");
-        d.addEdge("B", "F");
-        d.addEdge("E", "H");
-        d.addEdge("C", "G");
-        d.addEdge("G", "J");
-        d.addEdge("E", "I");
+        for (int i = 0; i < 1999; i++) {
+            int temp = i + 1;
+            d.addEdge("" + i, "" + temp);
+            System.out.println(i);
+        }
 
         d.startMethodTrace();
-        for (String friend : d.adjacent("B")) {
+        for (String friend : d.adjacent("2")) {
             System.out.println(friend);
         } // expect: ADEF
         d.endMethodTrace();
 
         d.startMethodTrace();
-        ArrayList<Node> pre = d.preDFS(d.getNode("A"));
+        ArrayList<Node> pre = d.preDFS(d.getNode("0"));
         for (Node item : pre) {
             System.out.println(item.getName());
         } // expect: ABDEHIFCGJ
         d.endMethodTrace();
 
         d.startMethodTrace();
-        ArrayList<Node> post = d.postDFS(d.getNode("A"));
+        ArrayList<Node> post = d.postDFS(d.getNode("0"));
         for (Node item : post) {
             System.out.println(item.getName());
         } // expect: DHIEFBJGCA
         d.endMethodTrace();
 
         d.startMethodTrace();
-        ArrayList<Node> bfs = d.BFS(d.getNode("C"));
+        ArrayList<Node> bfs = d.BFS(d.getNode("0"));
         for (Node item : bfs) {
             System.out.println(item.getName());
         } // expect: CAGBJDEFHI
