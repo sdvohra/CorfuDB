@@ -378,7 +378,7 @@ public class GraphDB {
         // Create Transport Zone
         Object[] p = new Object[1];
         p[0] = new UUID(-3121351451739669003L, -7836414342361877842L);
-        d.addNode("TransportZone0", "TransportZone", p);
+        d.addNode("TransportZone0", "Transport Zone", p);
         //props
         HashMap<String, Object> hm = new HashMap<>();
         hm.put("Description", "Transport Zone");
