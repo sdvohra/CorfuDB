@@ -215,13 +215,15 @@ public class GraphDB {
         // Resolved with:
         // http://stackoverflow.com/questions/1884889/iterating-over-and-removing-from-a-map
         int counter = 0;
-        for (Iterator<Map.Entry<String, Node>> it = vertices.entrySet().iterator(); it.hasNext(); ) {
-            Map.Entry<String, Node> entry = it.next();
-            if (entry.getValue().getEdges().size() == 0) {
-                counter++;
-                //it.remove();
-            }
-        }
+        vertices.entrySet().removeIf(e-> e.getValue().getEdges().size() == 0 );
+//        vertices.values();
+//        for (Iterator<Map.Entry<String, Node>> it = vertices.entrySet().iterator(); it.hasNext(); ) {
+//            Map.Entry<String, Node> entry = it.next();
+//            if (entry.getValue().getEdges().size() == 0) {
+//                counter++;
+//                //it.remove();
+//            }
+//        }
         System.out.println(counter);
     }
 
