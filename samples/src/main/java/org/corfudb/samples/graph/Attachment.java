@@ -6,9 +6,7 @@ import lombok.Data;
 import java.util.UUID;
 
 /**
- * @see L2Model.txt
  * @author mdhawan
- *
  */
 @Data
 @AllArgsConstructor

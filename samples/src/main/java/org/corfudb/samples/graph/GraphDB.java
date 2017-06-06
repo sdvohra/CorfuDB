@@ -2,7 +2,6 @@ package org.corfudb.samples.graph;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
-import com.google.common.collect.ImmutableList;
 import org.corfudb.runtime.CorfuRuntime;
 import org.corfudb.runtime.collections.SMRMap;
 import org.corfudb.util.GitRepositoryState;
@@ -20,7 +19,7 @@ import java.util.*;
  */
 
 public class GraphDB {
-    private SMRMap<String, Node> vertices; //UUID-->Node
+    private SMRMap<UUID, Node> vertices;
     CorfuRuntime rt;
 
     private Tracer t;
@@ -113,36 +112,37 @@ public class GraphDB {
         return "This graph has " + getNumNodes() + " vertices.";
     }
 
-    public Node getNode(String name) { return vertices.get(name); }
+    public Node getNode(UUID id) { return vertices.get(id); }
 
-    public void addNode(String name) { vertices.put(name, new Node(name)); }
+    public void addNode(UUID uuid) {
+        vertices.put(uuid, new Node(uuid));
+    }
 
-    public void addNode(String name, String type, Object[] params) {
+    public void addNode(UUID uuid, String name) {
+        vertices.put(uuid, new Node(uuid, name));
+    }
+
+    public void addNode(UUID uuid, String name, String type) {
         if (type.equals("Transport Zone")) {
-            TransportZone tz = new TransportZone((UUID) params[0]);
-            tz.setName(name);
-            vertices.put(name, tz);
-        } else if (type.equals("Logical Switch")) {
-            LogicalSwitch ls = new LogicalSwitch((UUID) params[0], (UUID) params[1], (ArrayList<UUID>) params[2]);
-            ls.setName(name);
-            vertices.put(name, ls);
-        } else if (type.equals("Logical Port")) {
-            LogicalPort lp = new LogicalPort((UUID) params[0], (UUID) params[1], (Attachment) params[2],
-                    (ArrayList<UUID>) params[3]);
-            lp.setName(name);
-            vertices.put(name, lp);
+            TransportZone tz = new TransportZone(uuid, name);
+            vertices.put(uuid, tz);
         } else if (type.equals("Transport Node")) {
-            TransportNode tn = new TransportNode((UUID) params[0], (HashSet<UUID>) params[1]);
-            tn.setName(name);
-            vertices.put(name, tn);
+            TransportNode tn = new TransportNode(uuid, name);
+            vertices.put(uuid, tn);
+        } else if (type.equals("Logical Switch")) {
+            LogicalSwitch ls = new LogicalSwitch(uuid, name);
+            vertices.put(uuid, ls);
+        } else if (type.equals("Logical Port")) {
+            LogicalPort lp = new LogicalPort(uuid, name);
+            vertices.put(uuid, lp);
         }
     }
 
-    public void update(String name, Map<String, Object> properties) {
-        vertices.get(name).getProperties().putAll(properties);
+    public void update(UUID uuid, Map<String, Object> properties) {
+        vertices.get(uuid).getProperties().putAll(properties);
     }
 
-    public void removeNode(String name) { vertices.remove(name); }
+    public void removeNode(UUID uuid) { vertices.remove(uuid); }
 
     public int getNumNodes() {
         return vertices.size();
@@ -150,11 +150,11 @@ public class GraphDB {
 
     public Edge addEdge(Node from, Node to) {
         if (from instanceof TransportNode) {
-            ((TransportNode) from).getTransportZoneIds().add(((TransportZone) to).id);
+            ((TransportNode) from).addTransportZoneID(to.getID());
         } else if (from instanceof LogicalSwitch) {
-            ((LogicalSwitch) from).setTzId(((TransportZone) to).id);
+            ((LogicalSwitch) from).connectToTZ(to.getID());
         } else if (from instanceof LogicalPort) {
-            ((LogicalPort) from).setLogicalSwitchId(((LogicalSwitch) to).id);
+            ((LogicalPort) from).connectToLS(to.getID());
         }
 
         Edge e = new Edge(from, to);
@@ -163,19 +163,19 @@ public class GraphDB {
         return e;
     }
 
-    public Edge addEdge(String from, String to) {
+    public Edge addEdge(UUID from, UUID to) {
         Node f = getNode(from);
         Node t = getNode(to);
         return addEdge(f, t);
     }
 
     /** Returns an iterable of all vertex IDs in the graph. */
-    Iterable<String> vertices() {
+    Iterable<UUID> vertices() {
         return vertices.keySet();
     }
 
     /** Returns an iterable of names of all vertices adjacent to v. */
-    Iterable<String> adjacent(String v) { // modify with pointers
+    Iterable<Node> adjacent(UUID v) {
         if (isTracing) {
             t.updateArgs("GraphDBTest", "adjacent", 1, Thread.currentThread().getId(),
                     System.currentTimeMillis(), "B", null);
@@ -183,12 +183,12 @@ public class GraphDB {
 
         // begin method
         ArrayList<Edge> edgeList = vertices.get(v).getEdges();
-        ArrayList<String> returnVal = new ArrayList<>();
+        ArrayList<Node> returnVal = new ArrayList<>();
         for (Edge e : edgeList) {
-            if (v.equals(e.getTo().getName())) {
-                returnVal.add(e.getFrom().getName());
+            if (v.equals(e.getTo().getID())) {
+                returnVal.add(e.getFrom());
             } else {
-                returnVal.add(e.getTo().getName());
+                returnVal.add(e.getTo());
             }
         }
         // end method

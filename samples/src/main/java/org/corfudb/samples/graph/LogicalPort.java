@@ -1,22 +1,53 @@
 package org.corfudb.samples.graph;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.ToString;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 /**
- * Created by shriyav on 5/31/17.
+ * @author mdhawan
+ * edited by shriyav
  */
 @Data
-@AllArgsConstructor
 @ToString
 public class LogicalPort extends Node {
-    UUID id;
-    UUID logicalSwitchId;
+    UUID logicalSwitchId; // will be modified when adding Edges
     Attachment attachment;
     List<UUID> profiles;
+
+    public LogicalPort() {
+        super();
+        logicalSwitchId = null;
+        attachment = null;
+        profiles = new ArrayList<>();
+    }
+
+    public LogicalPort(UUID uuid) {
+        super(uuid);
+        logicalSwitchId = null;
+        attachment = null;
+        profiles = new ArrayList<>();
+    }
+
+    public LogicalPort(UUID uuid, String n) {
+        super(uuid, n);
+        logicalSwitchId = null;
+        attachment = null;
+        profiles = new ArrayList<>();
+    }
+
+    public LogicalPort(UUID uuid, String n, HashMap<String, Object> props) {
+        super(uuid, n, props);
+        logicalSwitchId = null;
+        attachment = null;
+        profiles = new ArrayList<>();
+    }
+
+    public void connectToLS(UUID uuid) {
+        logicalSwitchId = uuid;
+    }
 }

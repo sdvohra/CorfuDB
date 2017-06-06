@@ -1,27 +1,40 @@
 package org.corfudb.samples.graph;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.ToString;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 /**
- * @see L2Model.txt
  * @author mdhawan
- *
+ * edited by shriyav
  */
 @Data
-@AllArgsConstructor
 @ToString
 public class TransportNode extends Node {
-    UUID id;
     Set<UUID> transportZoneIds;
 
-    public void setProperties(HashMap<String, Object> props) {
-        properties = props;
+    public TransportNode() {
+        super();
+        transportZoneIds = new HashSet<>();
+    }
+
+    public TransportNode(UUID uuid) {
+        super(uuid);
+        transportZoneIds = new HashSet<>();
+    }
+
+    public TransportNode(UUID uuid, String n) {
+        super(uuid, n);
+        transportZoneIds = new HashSet<>();
+    }
+
+    public TransportNode(UUID uuid, String n, HashMap<String, Object> props) {
+        super(uuid, n, props);
+        transportZoneIds = new HashSet<>();
+    }
+
+    public void addTransportZoneID(UUID uuid) {
+        transportZoneIds.add(uuid);
     }
 }
