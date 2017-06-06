@@ -120,17 +120,21 @@ public class GraphDB {
     public void addNode(String name, String type, Object[] params) {
         if (type.equals("Transport Zone")) {
             TransportZone tz = new TransportZone((UUID) params[0]);
+            tz.setName(name);
             vertices.put(name, tz);
         } else if (type.equals("Logical Switch")) {
             LogicalSwitch ls = new LogicalSwitch((UUID) params[0], (String) params[1], (UUID) params[2],
                     (ArrayList<UUID>) params[3]);
+            ls.setName(name);
             vertices.put(name, ls);
         } else if (type.equals("Logical Port")) {
             LogicalPort lp = new LogicalPort((UUID) params[0], (UUID) params[1], (Attachment) params[2],
                     (ImmutableList<UUID>) params[3]);
+            lp.setName(name);
             vertices.put(name, lp);
         } else if (type.equals("Transport Node")) {
             TransportNode tn = new TransportNode((UUID) params[0], (HashSet<UUID>) params[1]);
+            tn.setName(name);
             vertices.put(name, tn);
         }
     }
@@ -146,6 +150,14 @@ public class GraphDB {
     }
 
     public Edge addEdge(Node from, Node to) {
+        if (from instanceof TransportNode) {
+            ((TransportNode) from).getTransportZoneIds().add(((TransportZone) to).id);
+        } else if (from instanceof LogicalSwitch) {
+            ((LogicalSwitch) from).setTzId(((TransportZone) to).id);
+        } else if (from instanceof LogicalPort) {
+            ((LogicalPort) from).setLogicalSwitchId(((LogicalSwitch) to).id);
+        }
+
         Edge e = new Edge(from, to);
         from.addEdge(e);
         to.addEdge(e);
@@ -392,7 +404,7 @@ public class GraphDB {
                 p[0] = UUID.randomUUID(); //new UUID(-7646002813284697009L, -7442247082943576294L);
                 HashSet<UUID> hs = new HashSet<>();
                 //hs.add(new UUID(-3121351451739669003L, -7836414342361877842L));
-                hs.add(UUID.randomUUID());
+                //hs.add(UUID.randomUUID());
                 p[1] = hs;
                 p[2] = "TransportNode" + i + "." + j;
                 d.addNode("TransportNode" + i + "." + j, "Transport Node", p);
@@ -404,7 +416,32 @@ public class GraphDB {
             }
         }
 
+        // Adding edges between TNs and TZ - order matters!
+        d.addEdge("TransportNode1.1", "TransportZone0");
+        d.addEdge("TransportNode1.2", "TransportZone0");
+        d.addEdge("TransportNode2.1", "TransportZone0");
+
         System.out.println(d);
 
+        for (String friend : d.adjacent("TransportZone0")) {
+            System.out.println(friend);
+        } // expect: 1.1, 1.2, 2.1
+
+        ArrayList<Node> pre = d.preDFS(d.getNode("TransportZone0"));
+        for (Node item : pre) {
+            System.out.println(item.getName());
+        } // expect: 0, 1.1, 1.2, 2.1
+
+        ArrayList<Node> post = d.postDFS(d.getNode("TransportZone0"));
+        for (Node item : post) {
+            System.out.println(item.getName());
+        } // expect: 1.1, 1.2, 2.1, 0
+
+        ArrayList<Node> bfs = d.BFS(d.getNode("TransportZone0"));
+        for (Node item : bfs) {
+            System.out.println(item.getName());
+        } // expect: 0, 1.1, 1.2, 2.1
+
+        d.clear();
     }
 }
