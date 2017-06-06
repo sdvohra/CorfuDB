@@ -1,9 +1,6 @@
 package org.corfudb.samples.graph;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Created by shriyav on 5/25/17.
@@ -12,34 +9,35 @@ import java.util.UUID;
 public class Node {
     UUID id;
     String name;
-    ArrayList<Edge> edges;
+    ArrayList<Edge> oldEdges; // set pf UUIDs - don't even need an Edge class really
+    HashSet<UUID> edges;
     HashMap<String, Object> properties;
 
     public Node() {
         id = UUID.randomUUID();
         name = "";
-        edges = new ArrayList<>();
+        edges = new HashSet<>();
         properties = new HashMap<>();
     }
 
     public Node(UUID uuid) {
         id = uuid;
         name = "";
-        edges = new ArrayList<>();
+        edges = new HashSet<>();
         properties = new HashMap<>();
     }
 
     public Node(UUID uuid, String n) {
         id = uuid;
         name = n;
-        edges = new ArrayList<>();
+        edges = new HashSet<>();
         properties = new HashMap<>();
     }
 
     public Node(UUID uuid, String n, HashMap<String, Object> props) {
         id = uuid;
         name = n;
-        edges = new ArrayList<>();
+        edges = new HashSet<>();
         properties = props;
     }
 
@@ -51,7 +49,7 @@ public class Node {
         return name;
     }
 
-    public ArrayList<Edge> getEdges() {
+    public HashSet<UUID> getEdges() {
         return edges;
     }
 
@@ -67,7 +65,7 @@ public class Node {
         name = n;
     }
 
-    public void addEdge(Edge e) {
+    public void addEdge(UUID e) {
         edges.add(e);
     }
 

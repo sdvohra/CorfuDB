@@ -370,48 +370,38 @@ public class GraphDB {
         //d.testMethodsAndPerf(d);
 
         // Create Transport Zone
-        Object[] p = new Object[1];
-        p[0] = new UUID(-3121351451739669003L, -7836414342361877842L);
-        d.addNode("TransportZone0", "Transport Zone", p);
+        UUID originalTZID = new UUID(-3121351451739669003L, -7836414342361877842L);
+        d.addNode(originalTZID, "TransportZone0", "Transport Zone");
         //props
         HashMap<String, Object> hm = new HashMap<>();
         hm.put("Description", "Transport Zone");
         hm.put("HostSwitch", "HostSwitch0");
-        d.getNode("TransportZone0").properties = hm;
+        d.getNode(originalTZID).setProperties(hm);
 
         // Create Transport Nodes
         for (int i = 0; i < 3; i++) {
             for (int j = 1; j < 3; j++) {
-                p = new Object[3];
-                p[0] = UUID.randomUUID(); //new UUID(-7646002813284697009L, -7442247082943576294L);
-                HashSet<UUID> hs = new HashSet<>();
-                //hs.add(new UUID(-3121351451739669003L, -7836414342361877842L));
-                //hs.add(UUID.randomUUID());
-                p[1] = hs;
-                d.addNode("TransportNode" + i + "." + j, "Transport Node", p);
+                UUID curr = UUID.randomUUID();
+                d.addNode(curr, "TransportNode" + i + "." + j, "Transport Node");
                 // props
                 hm = new HashMap<>();
                 hm.put("Description", "Transport Node");
                 hm.put("HostSwitch", "HostSwitch" + i);
-                d.getNode("TransportNode" + i + "." + j).properties = hm;
+                d.getNode(curr).setProperties(hm);
             }
         }
 
         // Create Logical Switches
         for (int i = 0; i < 4; i++) {
             for (int j = 1; j < 3; j++) {
-                p = new Object[3];
-                p[0] = UUID.randomUUID(); //new UUID(-7646002813284697009L, -7442247082943576294L);
-                p[1] = null;
-                ArrayList<UUID> profs = new ArrayList<>();
-                p[2] = profs;
-                d.addNode("LogicalSwitch" + i + "." + j, "Logical Switch", p);
+                UUID curr = UUID.randomUUID();
+                d.addNode(curr, "LogicalSwitch" + i + "." + j, "Logical Switch");
                 // props
                 hm = new HashMap<>();
                 hm.put("Description", "Logical Switch");
                 hm.put("Property1", "Value1");
                 hm.put("Property2", "Value2"); // hard-coded, should depend on # of profiles
-                d.getNode("LogicalSwitch" + i + "." + j).properties = hm;
+                d.getNode(curr).setProperties(hm);
             }
         }
 
@@ -446,8 +436,8 @@ public class GraphDB {
 
         System.out.println(d);
 
-        for (String friend : d.adjacent("TransportZone0")) {
-            System.out.println(friend);
+        for (Node friend : d.adjacent("TransportZone0")) {
+            System.out.println(friend.getName());
         } // expect: 1.1, 1.2, 2.1
 
         ArrayList<Node> pre = d.preDFS(d.getNode("TransportZone0"));
