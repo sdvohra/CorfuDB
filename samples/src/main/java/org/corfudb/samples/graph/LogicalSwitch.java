@@ -18,7 +18,6 @@ import java.util.UUID;
 @ToString
 public class LogicalSwitch extends Node {
     UUID id;
-    String name;
     // Transport zone which is the diameter of the network. A switch belongs to
     // one transport zone
     UUID tzId;

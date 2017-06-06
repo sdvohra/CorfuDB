@@ -123,13 +123,12 @@ public class GraphDB {
             tz.setName(name);
             vertices.put(name, tz);
         } else if (type.equals("Logical Switch")) {
-            LogicalSwitch ls = new LogicalSwitch((UUID) params[0], (String) params[1], (UUID) params[2],
-                    (ArrayList<UUID>) params[3]);
+            LogicalSwitch ls = new LogicalSwitch((UUID) params[0], (UUID) params[1], (ArrayList<UUID>) params[2]);
             ls.setName(name);
             vertices.put(name, ls);
         } else if (type.equals("Logical Port")) {
             LogicalPort lp = new LogicalPort((UUID) params[0], (UUID) params[1], (Attachment) params[2],
-                    (ImmutableList<UUID>) params[3]);
+                    (ArrayList<UUID>) params[3]);
             lp.setName(name);
             vertices.put(name, lp);
         } else if (type.equals("Transport Node")) {
@@ -211,16 +210,19 @@ public class GraphDB {
      *  While this does not guarantee that any two nodes in the remaining graph are connected,
      *  we can reasonably assume this since typically roads are connected.
      */
-    void clean() {
+    void clean() { // error in fn - it.remove() throws an error; everything else seems right.
         // Kept running into ConcurrentModificationException
         // Resolved with:
         // http://stackoverflow.com/questions/1884889/iterating-over-and-removing-from-a-map
+        int counter = 0;
         for (Iterator<Map.Entry<String, Node>> it = vertices.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<String, Node> entry = it.next();
             if (entry.getValue().getEdges().size() == 0) {
-                it.remove();
+                counter++;
+                //it.remove();
             }
         }
+        System.out.println(counter);
     }
 
     private ArrayList<Node> dfsHelper(Node n, String dfsType, ArrayList<Node> ordered, ArrayList<Node> seen) {
@@ -406,7 +408,6 @@ public class GraphDB {
                 //hs.add(new UUID(-3121351451739669003L, -7836414342361877842L));
                 //hs.add(UUID.randomUUID());
                 p[1] = hs;
-                p[2] = "TransportNode" + i + "." + j;
                 d.addNode("TransportNode" + i + "." + j, "Transport Node", p);
                 // props
                 hm = new HashMap<>();
@@ -416,10 +417,52 @@ public class GraphDB {
             }
         }
 
-        // Adding edges between TNs and TZ - order matters!
+        // Create Logical Switches
+        for (int i = 0; i < 4; i++) {
+            for (int j = 1; j < 3; j++) {
+                p = new Object[3];
+                p[0] = UUID.randomUUID(); //new UUID(-7646002813284697009L, -7442247082943576294L);
+                p[1] = null;
+                ArrayList<UUID> profs = new ArrayList<>();
+                p[2] = profs;
+                d.addNode("LogicalSwitch" + i + "." + j, "Logical Switch", p);
+                // props
+                hm = new HashMap<>();
+                hm.put("Description", "Logical Switch");
+                hm.put("Property1", "Value1");
+                hm.put("Property2", "Value2"); // hard-coded, should depend on # of profiles
+                d.getNode("LogicalSwitch" + i + "." + j).properties = hm;
+            }
+        }
+
+        // Create Logical Ports
+        for (int i = 0; i < 3; i++) {
+            for (int j = 1; j < 3; j++) {
+                p = new Object[4];
+                p[0] = UUID.randomUUID(); //new UUID(-7646002813284697009L, -7442247082943576294L);
+                p[1] = null;
+                p[2] = null; // what is an attachment?
+                ArrayList<UUID> profs = new ArrayList<>();
+                p[3] = profs;
+                d.addNode("LogicalPort" + i + "." + j, "Logical Port", p);
+                // props
+                hm = new HashMap<>();
+                hm.put("Description", "Logical Port");
+                hm.put("Property1", "Value1");
+                hm.put("Property2", "Value2"); // hard-coded, should depend on # of profiles
+                d.getNode("LogicalPort" + i + "." + j).properties = hm;
+            }
+        }
+
+        // Adding edges - order matters!
         d.addEdge("TransportNode1.1", "TransportZone0");
         d.addEdge("TransportNode1.2", "TransportZone0");
         d.addEdge("TransportNode2.1", "TransportZone0");
+        d.addEdge("LogicalSwitch3.1", "TransportZone0");
+        d.addEdge("LogicalSwitch3.2", "TransportZone0");
+        d.addEdge("LogicalPort0.2", "LogicalSwitch3.1");
+        d.addEdge("LogicalPort1.2", "LogicalSwitch3.2");
+        d.addEdge("LogicalPort2.2", "LogicalSwitch3.1");
 
         System.out.println(d);
 
@@ -441,6 +484,9 @@ public class GraphDB {
         for (Node item : bfs) {
             System.out.println(item.getName());
         } // expect: 0, 1.1, 1.2, 2.1
+
+        d.clean();
+        System.out.println(d);
 
         d.clear();
     }
