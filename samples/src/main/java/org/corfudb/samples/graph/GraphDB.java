@@ -20,7 +20,7 @@ import java.util.*;
  */
 
 public class GraphDB {
-    private SMRMap<String, Node> vertices;
+    private SMRMap<String, Node> vertices; //UUID-->Node
     CorfuRuntime rt;
 
     private Tracer t;
@@ -203,28 +203,6 @@ public class GraphDB {
     /** Clear entire graph: remove all nodes/edges. */
     void clear() {
         vertices.clear();
-    }
-
-    /**
-     *  Remove nodes with no connections from the graph.
-     *  While this does not guarantee that any two nodes in the remaining graph are connected,
-     *  we can reasonably assume this since typically roads are connected.
-     */
-    void clean() { // error in fn - it.remove() throws an error; everything else seems right.
-        // Kept running into ConcurrentModificationException
-        // Resolved with:
-        // http://stackoverflow.com/questions/1884889/iterating-over-and-removing-from-a-map
-        int counter = 0;
-        vertices.entrySet().removeIf(e-> e.getValue().getEdges().size() == 0 );
-//        vertices.values();
-//        for (Iterator<Map.Entry<String, Node>> it = vertices.entrySet().iterator(); it.hasNext(); ) {
-//            Map.Entry<String, Node> entry = it.next();
-//            if (entry.getValue().getEdges().size() == 0) {
-//                counter++;
-//                //it.remove();
-//            }
-//        }
-        System.out.println(counter);
     }
 
     private ArrayList<Node> dfsHelper(Node n, String dfsType, ArrayList<Node> ordered, ArrayList<Node> seen) {
@@ -456,13 +434,13 @@ public class GraphDB {
             }
         }
 
-        // Adding edges - order matters!
+        // Adding edges - order matters! - instead of <str, Node> --> <UUID, Node>
         d.addEdge("TransportNode1.1", "TransportZone0");
         d.addEdge("TransportNode1.2", "TransportZone0");
         d.addEdge("TransportNode2.1", "TransportZone0");
         d.addEdge("LogicalSwitch3.1", "TransportZone0");
         d.addEdge("LogicalSwitch3.2", "TransportZone0");
-        d.addEdge("LogicalPort0.2", "LogicalSwitch3.1");
+        d.addEdge("LogicalPort0.2", "LogicalSwitch3.1"); // addPort - wrap in API
         d.addEdge("LogicalPort1.2", "LogicalSwitch3.2");
         d.addEdge("LogicalPort2.2", "LogicalSwitch3.1");
 
@@ -486,9 +464,6 @@ public class GraphDB {
         for (Node item : bfs) {
             System.out.println(item.getName());
         } // expect: 0, 1.1, 1.2, 2.1
-
-        d.clean();
-        System.out.println(d);
 
         d.clear();
     }
