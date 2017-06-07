@@ -5,7 +5,6 @@ import org.corfudb.util.GitRepositoryState;
 import org.docopt.Docopt;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
