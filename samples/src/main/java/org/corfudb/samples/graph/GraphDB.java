@@ -148,7 +148,7 @@ public class GraphDB {
         return vertices.size();
     }
 
-    public Edge addEdge(Node from, Node to) {
+    public void addEdge(Node from, Node to) {
         if (from instanceof TransportNode) {
             ((TransportNode) from).addTransportZoneID(to.getID());
         } else if (from instanceof LogicalSwitch) {
@@ -157,16 +157,14 @@ public class GraphDB {
             ((LogicalPort) from).connectToLS(to.getID());
         }
 
-        Edge e = new Edge(from, to);
-        from.addEdge(e);
-        to.addEdge(e);
-        return e;
+        from.addEdge(to.getID());
+        to.addEdge(from.getID());
     }
 
-    public Edge addEdge(UUID from, UUID to) {
+    public void addEdge(UUID from, UUID to) {
         Node f = getNode(from);
         Node t = getNode(to);
-        return addEdge(f, t);
+        addEdge(f, t);
     }
 
     /** Returns an iterable of all vertex IDs in the graph. */
@@ -174,22 +172,18 @@ public class GraphDB {
         return vertices.keySet();
     }
 
-    /** Returns an iterable of names of all vertices adjacent to v. */
-    Iterable<Node> adjacent(UUID v) {
+    /** Returns an iterable of nodes of all vertices adjacent to v. */
+    Iterable<UUID> adjacent(UUID v) {
         if (isTracing) {
             t.updateArgs("GraphDBTest", "adjacent", 1, Thread.currentThread().getId(),
                     System.currentTimeMillis(), "B", null);
         }
 
         // begin method
-        ArrayList<Edge> edgeList = vertices.get(v).getEdges();
-        ArrayList<Node> returnVal = new ArrayList<>();
-        for (Edge e : edgeList) {
-            if (v.equals(e.getTo().getID())) {
-                returnVal.add(e.getFrom());
-            } else {
-                returnVal.add(e.getTo());
-            }
+        HashSet<UUID> edgeList = vertices.get(v).getEdges();
+        ArrayList<UUID> returnVal = new ArrayList<>();
+        for (UUID e : edgeList) {
+            returnVal.add(e);
         }
         // end method
 
@@ -205,34 +199,31 @@ public class GraphDB {
         vertices.clear();
     }
 
-    private ArrayList<Node> dfsHelper(Node n, String dfsType, ArrayList<Node> ordered, ArrayList<Node> seen) {
-        if (n != null && !seen.contains(n)) {
+    private ArrayList<UUID> dfsHelper(UUID f, String dfsType, ArrayList<UUID> ordered, ArrayList<UUID> seen) {
+        Node n = vertices.get(f);
+        if (n != null && !seen.contains(f)) {
             if (dfsType.equals("pre")) {
-                ordered.add(n);
+                ordered.add(f);
             }
-            seen.add(n);
-            for (Edge neighbor: n.getEdges()) {
-                if (neighbor.getFrom().equals(n)) {
-                    dfsHelper(neighbor.getTo(), dfsType, ordered, seen);
-                } else {
-                    dfsHelper(neighbor.getFrom(), dfsType, ordered, seen);
-                }
+            seen.add(f);
+            for (UUID neighbor : n.getEdges()) {
+                dfsHelper(neighbor, dfsType, ordered, seen);
             }
             if (dfsType.equals("post")) {
-                ordered.add(n);
+                ordered.add(f);
             }
         }
         return ordered;
     }
 
-    ArrayList<Node> preDFS(Node f) {
+    ArrayList<UUID> preDFS(UUID first) {
         if (isTracing) {
             t.updateArgs("GraphDBTest", "preDFS", 1, Thread.currentThread().getId(),
                     System.currentTimeMillis(), "B", null);
         }
 
         // begin method
-        ArrayList<Node> returnVal = dfsHelper(f, "pre", new ArrayList<Node>(), new ArrayList<Node>());
+        ArrayList<UUID> returnVal = dfsHelper(first, "pre", new ArrayList<UUID>(), new ArrayList<UUID>());
         // end method
 
         if (isTracing) {
@@ -242,14 +233,14 @@ public class GraphDB {
         return returnVal;
     }
 
-    ArrayList<Node> postDFS(Node f) {
+    ArrayList<UUID> postDFS(UUID first) {
         if (isTracing) {
             t.updateArgs("GraphDBTest", "postDFS", 1, Thread.currentThread().getId(),
                     System.currentTimeMillis(), "B", null);
         }
 
         // begin method
-        ArrayList<Node> returnVal = dfsHelper(f, "post", new ArrayList<Node>(), new ArrayList<Node>());
+        ArrayList<UUID> returnVal = dfsHelper(first, "post", new ArrayList<UUID>(), new ArrayList<UUID>());
         // end method
 
         if (isTracing) {
@@ -259,26 +250,22 @@ public class GraphDB {
         return returnVal;
     }
 
-    ArrayList<Node> BFS(Node f) {
+    ArrayList<UUID> BFS(UUID first) {
         if (isTracing) {
             t.updateArgs("GraphDBTest", "BFS", 1, Thread.currentThread().getId(),
                     System.currentTimeMillis(), "B", null);
         }
 
         // begin method
-        ArrayList<Node> ordered = new ArrayList<>();
-        ArrayList<Node> fringe = new ArrayList<>();
-        fringe.add(f);
+        ArrayList<UUID> ordered = new ArrayList<>();
+        ArrayList<UUID> fringe = new ArrayList<>();
+        fringe.add(first);
         while (fringe.size() != 0) {
-            Node curr = fringe.remove(0);
+            UUID curr = fringe.remove(0);
             if (!ordered.contains(curr)) {
                 ordered.add(curr);
-                for (Edge neighbor : curr.getEdges()) {
-                    if (neighbor.getFrom().equals(curr)) {
-                        fringe.add(neighbor.getTo());
-                    } else {
-                        fringe.add(neighbor.getFrom());
-                    }
+                for (UUID neighbor : vertices.get(curr).getEdges()) {
+                    fringe.add(neighbor);
                 }
             }
         }
@@ -308,50 +295,50 @@ public class GraphDB {
     }
 
     private static void testMethodsAndPerf(GraphDB d) {
-        for (int i = 0; i < 2000; i++) {
-            d.addNode("" + i);
-        }
-
-        for (int i = 0; i < 1999; i++) {
-            int temp = i + 1;
-            d.addEdge("" + i, "" + temp);
-            System.out.println(i);
-        }
-
-        d.startMethodTrace();
-        for (String friend : d.adjacent("2")) {
-            System.out.println(friend);
-        } // expect: ADEF
-        d.endMethodTrace();
-
-        d.startMethodTrace();
-        ArrayList<Node> pre = d.preDFS(d.getNode("0"));
-        for (Node item : pre) {
-            System.out.println(item.getName());
-        } // expect: ABDEHIFCGJ
-        d.endMethodTrace();
-
-        d.startMethodTrace();
-        ArrayList<Node> post = d.postDFS(d.getNode("0"));
-        for (Node item : post) {
-            System.out.println(item.getName());
-        } // expect: DHIEFBJGCA
-        d.endMethodTrace();
-
-        d.startMethodTrace();
-        ArrayList<Node> bfs = d.BFS(d.getNode("0"));
-        for (Node item : bfs) {
-            System.out.println(item.getName());
-        } // expect: CAGBJDEFHI
-        d.endMethodTrace();
+//        for (int i = 0; i < 2000; i++) {
+//            d.addNode("" + i);
+//        }
+//
+//        for (int i = 0; i < 1999; i++) {
+//            int temp = i + 1;
+//            d.addEdge("" + i, "" + temp);
+//            System.out.println(i);
+//        }
+//
+//        d.startMethodTrace();
+//        for (String friend : d.adjacent("2")) {
+//            System.out.println(friend);
+//        } // expect: ADEF
+//        d.endMethodTrace();
+//
+//        d.startMethodTrace();
+//        ArrayList<Node> pre = d.preDFS(d.getNode("0"));
+//        for (Node item : pre) {
+//            System.out.println(item.getName());
+//        } // expect: ABDEHIFCGJ
+//        d.endMethodTrace();
+//
+//        d.startMethodTrace();
+//        ArrayList<Node> post = d.postDFS(d.getNode("0"));
+//        for (Node item : post) {
+//            System.out.println(item.getName());
+//        } // expect: DHIEFBJGCA
+//        d.endMethodTrace();
+//
+//        d.startMethodTrace();
+//        ArrayList<Node> bfs = d.BFS(d.getNode("0"));
+//        for (Node item : bfs) {
+//            System.out.println(item.getName());
+//        } // expect: CAGBJDEFHI
+//        d.endMethodTrace();
 
         d.clear();
     }
 
     public static void main(String[] args) {
         // Enabling logging
-        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
-        root.setLevel(Level.TRACE);
+        //Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+        //root.setLevel(Level.TRACE);
 
         // Parse the options given, using docopt.
         Map<String, Object> opts =
@@ -370,18 +357,26 @@ public class GraphDB {
         //d.testMethodsAndPerf(d);
 
         // Create Transport Zone
-        UUID originalTZID = new UUID(-3121351451739669003L, -7836414342361877842L);
-        d.addNode(originalTZID, "TransportZone0", "Transport Zone");
+        UUID TZ1 = UUID.randomUUID();
+        d.addNode(TZ1, "TransportZone0", "Transport Zone");
         //props
         HashMap<String, Object> hm = new HashMap<>();
         hm.put("Description", "Transport Zone");
         hm.put("HostSwitch", "HostSwitch0");
-        d.getNode(originalTZID).setProperties(hm);
+        d.getNode(TZ1).setProperties(hm);
 
         // Create Transport Nodes
+        UUID TN1 = null, TN2 = null, TN3 = null;
         for (int i = 0; i < 3; i++) {
             for (int j = 1; j < 3; j++) {
                 UUID curr = UUID.randomUUID();
+                if (i == 1 && j == 1) {
+                    TN1 = curr;
+                } else if (i == 1 && j == 2) {
+                    TN2 = curr;
+                } else if (i == 2 && j == 1) {
+                    TN3 = curr;
+                }
                 d.addNode(curr, "TransportNode" + i + "." + j, "Transport Node");
                 // props
                 hm = new HashMap<>();
@@ -392,9 +387,15 @@ public class GraphDB {
         }
 
         // Create Logical Switches
+        UUID LS1 = null, LS2 = null;
         for (int i = 0; i < 4; i++) {
             for (int j = 1; j < 3; j++) {
                 UUID curr = UUID.randomUUID();
+                if (i == 3 && j == 1) {
+                    LS1 = curr;
+                } else if (i == 3 && j == 2) {
+                    LS2 = curr;
+                }
                 d.addNode(curr, "LogicalSwitch" + i + "." + j, "Logical Switch");
                 // props
                 hm = new HashMap<>();
@@ -406,55 +407,60 @@ public class GraphDB {
         }
 
         // Create Logical Ports
+        UUID LP1 = null, LP2 = null, LP3 = null;
         for (int i = 0; i < 3; i++) {
             for (int j = 1; j < 3; j++) {
-                p = new Object[4];
-                p[0] = UUID.randomUUID(); //new UUID(-7646002813284697009L, -7442247082943576294L);
-                p[1] = null;
-                p[2] = null; // what is an attachment?
-                ArrayList<UUID> profs = new ArrayList<>();
-                p[3] = profs;
-                d.addNode("LogicalPort" + i + "." + j, "Logical Port", p);
+                UUID curr = UUID.randomUUID();
+                if (i == 0 && j == 2) {
+                    LP1 = curr;
+                } else if (i == 2 && j == 2) {
+                    LP2 = curr;
+                } else if (i == 1 && j == 2) {
+                    LP3 = curr;
+                }
+                d.addNode(curr, "LogicalPort" + i + "." + j, "Logical Port");
                 // props
                 hm = new HashMap<>();
                 hm.put("Description", "Logical Port");
                 hm.put("Property1", "Value1");
                 hm.put("Property2", "Value2"); // hard-coded, should depend on # of profiles
-                d.getNode("LogicalPort" + i + "." + j).properties = hm;
+                d.getNode(curr).setProperties(hm);
             }
         }
 
-        // Adding edges - order matters! - instead of <str, Node> --> <UUID, Node>
-        d.addEdge("TransportNode1.1", "TransportZone0");
-        d.addEdge("TransportNode1.2", "TransportZone0");
-        d.addEdge("TransportNode2.1", "TransportZone0");
-        d.addEdge("LogicalSwitch3.1", "TransportZone0");
-        d.addEdge("LogicalSwitch3.2", "TransportZone0");
-        d.addEdge("LogicalPort0.2", "LogicalSwitch3.1"); // addPort - wrap in API
-        d.addEdge("LogicalPort1.2", "LogicalSwitch3.2");
-        d.addEdge("LogicalPort2.2", "LogicalSwitch3.1");
+        // Adding edges - order matters!
+        d.addEdge(TN1, TZ1);
+        d.addEdge(TN2, TZ1);
+        d.addEdge(TN3, TZ1);
+        d.addEdge(LS1, TZ1);
+        d.addEdge(LS2, TZ1);
+        d.addEdge(LP1, LS1); // addPort - wrap in API
+        d.addEdge(LP3, LS2);
+        d.addEdge(LP2, LS1);
 
         System.out.println(d);
 
-        for (Node friend : d.adjacent("TransportZone0")) {
-            System.out.println(friend.getName());
+        for (UUID friend : d.adjacent(TZ1)) {
+            System.out.println(d.vertices.get(friend).getName());
         } // expect: 1.1, 1.2, 2.1
+        System.out.println();
 
-        ArrayList<Node> pre = d.preDFS(d.getNode("TransportZone0"));
-        for (Node item : pre) {
-            System.out.println(item.getName());
+        ArrayList<UUID> pre = d.preDFS(TZ1);
+        for (UUID item : pre) {
+            System.out.println(d.vertices.get(item).getName());
         } // expect: 0, 1.1, 1.2, 2.1
+        System.out.println();
 
-        ArrayList<Node> post = d.postDFS(d.getNode("TransportZone0"));
-        for (Node item : post) {
-            System.out.println(item.getName());
+        ArrayList<UUID> post = d.postDFS(TZ1);
+        for (UUID item : post) {
+            System.out.println(d.vertices.get(item).getName());
         } // expect: 1.1, 1.2, 2.1, 0
+        System.out.println();
 
-        ArrayList<Node> bfs = d.BFS(d.getNode("TransportZone0"));
-        for (Node item : bfs) {
-            System.out.println(item.getName());
+        ArrayList<UUID> bfs = d.BFS(TZ1);
+        for (UUID item : bfs) {
+            System.out.println(d.vertices.get(item).getName());
         } // expect: 0, 1.1, 1.2, 2.1
-
-        d.clear();
+        System.out.println();
     }
 }
