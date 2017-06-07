@@ -9,7 +9,6 @@ import java.util.*;
 public class Node {
     UUID id;
     String name;
-    ArrayList<Edge> oldEdges; // set pf UUIDs - don't even need an Edge class really
     HashSet<UUID> edges;
     HashMap<String, Object> properties;
 

@@ -438,29 +438,29 @@ public class GraphDB {
         d.addEdge(LP3, LS2);
         d.addEdge(LP2, LS1);
 
-        System.out.println(d);
+        System.out.println(d); // should change each time it's run (b/c persistent)
 
         for (UUID friend : d.adjacent(TZ1)) {
             System.out.println(d.vertices.get(friend).getName());
-        } // expect: 1.1, 1.2, 2.1
+        } // expect: TN1.1, TN1.2, TN2.1, LS3.1, LS3.2
         System.out.println();
 
         ArrayList<UUID> pre = d.preDFS(TZ1);
         for (UUID item : pre) {
             System.out.println(d.vertices.get(item).getName());
-        } // expect: 0, 1.1, 1.2, 2.1
+        } // expect: TZ0, TN1.1, TN1.2, TN2.1, LS3.1, LP0.2, LP2.2, LS3.2, LP1.2
         System.out.println();
 
         ArrayList<UUID> post = d.postDFS(TZ1);
         for (UUID item : post) {
             System.out.println(d.vertices.get(item).getName());
-        } // expect: 1.1, 1.2, 2.1, 0
+        } // expect: TN1.1, TN1.2, TN2.1, LP0.2, LP2.2, LS3.1, LP1.2, LS3.2, TZ0
         System.out.println();
 
         ArrayList<UUID> bfs = d.BFS(TZ1);
         for (UUID item : bfs) {
             System.out.println(d.vertices.get(item).getName());
-        } // expect: 0, 1.1, 1.2, 2.1
+        } // expect: TZ0, TN1.1, TN1.2, TN2.1, LS3.1, LS3.2, LP0.2, LP2.2, LP1.2
         System.out.println();
     }
 }
