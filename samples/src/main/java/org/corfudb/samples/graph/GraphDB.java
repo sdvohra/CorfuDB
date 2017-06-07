@@ -112,6 +112,8 @@ public class GraphDB {
         return "This graph has " + getNumNodes() + " vertices.";
     }
 
+    public SMRMap<UUID, Node> getVertices() { return vertices; }
+
     public Node getNode(UUID id) { return vertices.get(id); }
 
     public void addNode(UUID uuid) {
