@@ -144,6 +144,6 @@ public class AppContext {
         } // expect: TZ0, TN1.1, TN1.2, TN2.1, LS3.1, LS3.2, LP0.2, LP2.2, LP1.2
         System.out.println();
 
-        myApp.getGraph().clear();
+        //myApp.getGraph().clear();
     }
 }
