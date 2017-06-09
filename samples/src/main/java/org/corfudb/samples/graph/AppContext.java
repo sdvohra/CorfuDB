@@ -122,25 +122,25 @@ public class AppContext {
         System.out.println(myApp.getGraph()); // should change each time it's run (b/c persistent)
 
         for (UUID friend : myApp.getGraph().adjacent(TZ1)) {
-            System.out.println(myApp.getGraph().getVertices().get(friend).getName());
+            System.out.println(myApp.getGraph().getNodes().get(friend).getName());
         } // expect: TN1.1, TN1.2, TN2.1, LS3.1, LS3.2
         System.out.println();
 
         ArrayList<UUID> pre = myApp.getGraph().preDFS(TZ1);
         for (UUID item : pre) {
-            System.out.println(myApp.getGraph().getVertices().get(item).getName());
+            System.out.println(myApp.getGraph().getNodes().get(item).getName());
         } // expect: TZ0, TN1.1, TN1.2, TN2.1, LS3.1, LP0.2, LP2.2, LS3.2, LP1.2
         System.out.println();
 
         ArrayList<UUID> post = myApp.getGraph().postDFS(TZ1);
         for (UUID item : post) {
-            System.out.println(myApp.getGraph().getVertices().get(item).getName());
+            System.out.println(myApp.getGraph().getNodes().get(item).getName());
         } // expect: TN1.1, TN1.2, TN2.1, LP0.2, LP2.2, LS3.1, LP1.2, LS3.2, TZ0
         System.out.println();
 
         ArrayList<UUID> bfs = myApp.getGraph().BFS(TZ1);
         for (UUID item : bfs) {
-            System.out.println(myApp.getGraph().getVertices().get(item).getName());
+            System.out.println(myApp.getGraph().getNodes().get(item).getName());
         } // expect: TZ0, TN1.1, TN1.2, TN2.1, LS3.1, LS3.2, LP0.2, LP2.2, LP1.2
         System.out.println();
 

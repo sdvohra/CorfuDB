@@ -10,11 +10,11 @@ import java.util.*;
  */
 
 public class GraphDB {
-    private SMRMap<UUID, Node> vertices;
+    private SMRMap<UUID, Node> nodes;
     CorfuRuntime rt;
 
     public GraphDB(CorfuRuntime runtime) {
-        vertices = runtime.getObjectsView()
+        nodes = runtime.getObjectsView()
                 .build()
                 .setStreamName("A")     // stream name
                 .setType(SMRMap.class)  // object class backed by this stream
@@ -24,45 +24,45 @@ public class GraphDB {
 
     @Override
     public String toString() {
-        return "This graph has " + getNumNodes() + " vertices.";
+        return "This graph has " + getNumNodes() + " nodes.";
     }
 
-    public SMRMap<UUID, Node> getVertices() { return vertices; }
+    public SMRMap<UUID, Node> getNodes() { return nodes; }
 
-    public Node getNode(UUID id) { return vertices.get(id); }
+    public Node getNode(UUID id) { return nodes.get(id); }
 
     public void addNode(UUID uuid) {
-        vertices.put(uuid, new Node(uuid));
+        nodes.put(uuid, new Node(uuid));
     }
 
     public void addNode(UUID uuid, String name) {
-        vertices.put(uuid, new Node(uuid, name));
+        nodes.put(uuid, new Node(uuid, name));
     }
 
     public void addNode(UUID uuid, String name, String type) {
         if (type.equals("Transport Zone")) {
             TransportZone tz = new TransportZone(uuid, name);
-            vertices.put(uuid, tz);
+            nodes.put(uuid, tz);
         } else if (type.equals("Transport Node")) {
             TransportNode tn = new TransportNode(uuid, name);
-            vertices.put(uuid, tn);
+            nodes.put(uuid, tn);
         } else if (type.equals("Logical Switch")) {
             LogicalSwitch ls = new LogicalSwitch(uuid, name);
-            vertices.put(uuid, ls);
+            nodes.put(uuid, ls);
         } else if (type.equals("Logical Port")) {
             LogicalPort lp = new LogicalPort(uuid, name);
-            vertices.put(uuid, lp);
+            nodes.put(uuid, lp);
         }
     }
 
     public void update(UUID uuid, Map<String, Object> properties) {
-        vertices.get(uuid).getProperties().putAll(properties);
+        nodes.get(uuid).getProperties().putAll(properties);
     }
 
-    public void removeNode(UUID uuid) { vertices.remove(uuid); }
+    public void removeNode(UUID uuid) { nodes.remove(uuid); }
 
     public int getNumNodes() {
-        return vertices.size();
+        return nodes.size();
     }
 
     public void addEdge(Node from, Node to) {
@@ -84,14 +84,9 @@ public class GraphDB {
         addEdge(f, t);
     }
 
-    /** Returns an iterable of all vertex IDs in the graph. */
-    Iterable<UUID> vertices() {
-        return vertices.keySet();
-    }
-
-    /** Returns an iterable of nodes of all vertices adjacent to v. */
+    /** Returns an iterable of nodes of all nodes adjacent to v. */
     Iterable<UUID> adjacent(UUID v) {
-        ArrayList<UUID> edgeList = vertices.get(v).getEdges();
+        ArrayList<UUID> edgeList = nodes.get(v).getEdges();
         ArrayList<UUID> returnVal = new ArrayList<>();
         for (UUID e : edgeList) {
             returnVal.add(e);
@@ -101,11 +96,11 @@ public class GraphDB {
 
     /** Clear entire graph: remove all nodes/edges. */
     void clear() {
-        vertices.clear();
+        nodes.clear();
     }
 
     private ArrayList<UUID> dfsHelper(UUID f, String dfsType, ArrayList<UUID> ordered, ArrayList<UUID> seen) {
-        Node n = vertices.get(f);
+        Node n = nodes.get(f);
         if (n != null && !seen.contains(f)) {
             if (dfsType.equals("pre")) {
                 ordered.add(f);
@@ -139,7 +134,7 @@ public class GraphDB {
             UUID curr = fringe.remove(0);
             if (!ordered.contains(curr)) {
                 ordered.add(curr);
-                for (UUID neighbor : vertices.get(curr).getEdges()) {
+                for (UUID neighbor : nodes.get(curr).getEdges()) {
                     fringe.add(neighbor);
                 }
             }
