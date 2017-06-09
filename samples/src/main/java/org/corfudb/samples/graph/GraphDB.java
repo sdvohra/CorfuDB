@@ -91,7 +91,7 @@ public class GraphDB {
 
     /** Returns an iterable of nodes of all vertices adjacent to v. */
     Iterable<UUID> adjacent(UUID v) {
-        HashSet<UUID> edgeList = vertices.get(v).getEdges();
+        ArrayList<UUID> edgeList = vertices.get(v).getEdges();
         ArrayList<UUID> returnVal = new ArrayList<>();
         for (UUID e : edgeList) {
             returnVal.add(e);
