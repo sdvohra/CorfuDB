@@ -1,4 +1,4 @@
-package org.corfudb.samples.graph;
+package org.corfudb.runtime.collections.graphdb;
 
 import org.corfudb.runtime.CorfuRuntime;
 import org.corfudb.runtime.collections.SMRMap;
@@ -10,15 +10,17 @@ import java.util.*;
  */
 
 public class GraphDB {
-    private SMRMap<UUID, Node> nodes;
+    private Map<UUID, Node> nodes;
+    String name;
     CorfuRuntime rt;
 
-    public GraphDB(CorfuRuntime runtime) {
+    public GraphDB(CorfuRuntime runtime, String n) {
         nodes = runtime.getObjectsView()
                 .build()
-                .setStreamName("A")     // stream name
+                .setStreamName("B")     // stream name
                 .setType(SMRMap.class)  // object class backed by this stream
                 .open();                // instantiate the object!
+        name = n;
         rt = runtime;
     }
 
@@ -27,7 +29,7 @@ public class GraphDB {
         return "This graph has " + getNumNodes() + " nodes.";
     }
 
-    public SMRMap<UUID, Node> getNodes() { return nodes; }
+    public Map<UUID, Node> getNodes() { return nodes; }
 
     public Node getNode(UUID id) { return nodes.get(id); }
 
@@ -55,8 +57,10 @@ public class GraphDB {
         }
     }
 
-    public void update(UUID uuid, Map<String, Object> properties) {
-        nodes.get(uuid).getProperties().putAll(properties);
+    public void update(UUID uuid, Map<String, Object> props) { // is this better?
+        Node n = new Node(uuid, nodes.get(uuid).getName(), props);
+        nodes.put(uuid, n);
+        //nodes.get(uuid).getProperties().putAll(props);
     }
 
     public void removeNode(UUID uuid) { nodes.remove(uuid); }
@@ -85,7 +89,7 @@ public class GraphDB {
     }
 
     /** Returns an iterable of nodes of all nodes adjacent to v. */
-    Iterable<UUID> adjacent(UUID v) {
+    public Iterable<UUID> adjacent(UUID v) {
         ArrayList<UUID> edgeList = nodes.get(v).getEdges();
         ArrayList<UUID> returnVal = new ArrayList<>();
         for (UUID e : edgeList) {
@@ -94,8 +98,8 @@ public class GraphDB {
         return returnVal;
     }
 
-    /** Clear entire graph: remove all nodes/edges. */
-    void clear() {
+    /** Clear entire graphdb: remove all nodes/edges. */
+    public void clear() {
         nodes.clear();
     }
 
@@ -116,17 +120,67 @@ public class GraphDB {
         return ordered;
     }
 
-    ArrayList<UUID> preDFS(UUID first) {
+    public ArrayList<UUID> preDFS(UUID first) {
         ArrayList<UUID> returnVal = dfsHelper(first, "pre", new ArrayList<UUID>(), new ArrayList<UUID>());
         return returnVal;
     }
 
-    ArrayList<UUID> postDFS(UUID first) {
+    public ArrayList<UUID> preDFSIter(UUID first) { // needs to be tested
+        ArrayList<UUID> returnVal = new ArrayList<>();
+
+        Stack<UUID> stack = new Stack();
+        stack.add(first);
+
+        HashSet<UUID> visited = new HashSet<>();
+        visited.add(first);
+
+        while (!stack.isEmpty()) {
+            UUID element = stack.pop();
+            returnVal.add(element);
+
+            ArrayList<UUID> neighbors = nodes.get(element).getEdges();
+            for (UUID neighbor : neighbors) {
+                if (neighbor != null && !visited.contains(neighbor)) {
+                    stack.add(neighbor);
+                    visited.add(neighbor);
+                }
+            }
+        }
+
+        return returnVal;
+    }
+
+    public ArrayList<UUID> postDFS(UUID first) {
         ArrayList<UUID> returnVal = dfsHelper(first, "post", new ArrayList<UUID>(), new ArrayList<UUID>());
         return returnVal;
     }
 
-    ArrayList<UUID> BFS(UUID first) {
+    public ArrayList<UUID> postDFSIter(UUID first) { // needs to be tested - this could really be wrong!!!
+        ArrayList<UUID> returnVal = new ArrayList<>();
+
+        Stack<UUID> stack = new Stack();
+        stack.add(first);
+
+        HashSet<UUID> visited = new HashSet<>();
+        visited.add(first);
+
+        while (!stack.isEmpty()) {
+            UUID element = stack.pop();
+            returnVal.add(0, element);
+
+            ArrayList<UUID> neighbors = nodes.get(element).getEdges();
+            for (UUID neighbor : neighbors) {
+                if (neighbor != null && !visited.contains(neighbor)) {
+                    stack.add(neighbor);
+                    visited.add(neighbor);
+                }
+            }
+        }
+
+        return returnVal;
+    }
+
+    public ArrayList<UUID> BFS(UUID first) {
         ArrayList<UUID> ordered = new ArrayList<>();
         ArrayList<UUID> fringe = new ArrayList<>();
         fringe.add(first);

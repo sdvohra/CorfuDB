@@ -1,9 +1,12 @@
-package org.corfudb.samples.graph;
+package org.corfudb.runtime.collections.graphdb;
 
 import lombok.Data;
 import lombok.ToString;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * @author mdhawan

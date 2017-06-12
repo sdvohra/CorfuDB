@@ -1,4 +1,4 @@
-package org.corfudb.samples.graph;
+package org.corfudb.runtime.collections.graphdb;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

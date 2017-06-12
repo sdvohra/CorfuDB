@@ -1,6 +1,9 @@
-package org.corfudb.samples.graph;
+package org.corfudb.runtime.collections.graphdb;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Created by shriyav on 5/25/17.
@@ -10,7 +13,7 @@ public class Node {
     UUID id;
     String name;
     ArrayList<UUID> edges;
-    HashMap<String, Object> properties;
+    Map<String, Object> properties;
 
     public Node() {
         id = UUID.randomUUID();
@@ -33,7 +36,7 @@ public class Node {
         properties = new HashMap<>();
     }
 
-    public Node(UUID uuid, String n, HashMap<String, Object> props) {
+    public Node(UUID uuid, String n, Map<String, Object> props) {
         id = uuid;
         name = n;
         edges = new ArrayList<>();
