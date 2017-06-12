@@ -136,13 +136,13 @@ public class AppContext {
         Assert.assertEquals(actual, expected);
         System.out.println();
 
-        ArrayList<UUID> pre = myApp.getGraph().preDFSIter(TZ1);
+        ArrayList<UUID> pre = myApp.getGraph().preDFS(TZ1);
         for (UUID item : pre) {
             System.out.println(myApp.getGraph().getNodes().get(item).getName());
         } // expect: TZ0, TN1.1, TN1.2, TN2.1, LS3.1, LP0.2, LP2.2, LS3.2, LP1.2
         System.out.println();
 
-        ArrayList<UUID> post = myApp.getGraph().postDFSIter(TZ1);
+        ArrayList<UUID> post = myApp.getGraph().postDFS(TZ1);
         for (UUID item : post) {
             System.out.println(myApp.getGraph().getNodes().get(item).getName());
         } // expect: TN1.1, TN1.2, TN2.1, LP0.2, LP2.2, LS3.1, LP1.2, LS3.2, TZ0

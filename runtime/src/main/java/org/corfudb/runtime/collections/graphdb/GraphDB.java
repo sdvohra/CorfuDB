@@ -103,29 +103,7 @@ public class GraphDB {
         nodes.clear();
     }
 
-    private ArrayList<UUID> dfsHelper(UUID f, String dfsType, ArrayList<UUID> ordered, ArrayList<UUID> seen) {
-        Node n = nodes.get(f);
-        if (n != null && !seen.contains(f)) {
-            if (dfsType.equals("pre")) {
-                ordered.add(f);
-            }
-            seen.add(f);
-            for (UUID neighbor : n.getEdges()) {
-                dfsHelper(neighbor, dfsType, ordered, seen);
-            }
-            if (dfsType.equals("post")) {
-                ordered.add(f);
-            }
-        }
-        return ordered;
-    }
-
     public ArrayList<UUID> preDFS(UUID first) {
-        ArrayList<UUID> returnVal = dfsHelper(first, "pre", new ArrayList<UUID>(), new ArrayList<UUID>());
-        return returnVal;
-    }
-
-    public ArrayList<UUID> preDFSIter(UUID first) { // needs to be tested
         ArrayList<UUID> returnVal = new ArrayList<>();
 
         Stack<UUID> stack = new Stack();
@@ -139,23 +117,18 @@ public class GraphDB {
             returnVal.add(element);
 
             ArrayList<UUID> neighbors = nodes.get(element).getEdges();
-            for (UUID neighbor : neighbors) {
+            for (int i = neighbors.size() - 1; i >= 0; i--) {
+                UUID neighbor = neighbors.get(i);
                 if (neighbor != null && !visited.contains(neighbor)) {
                     stack.add(neighbor);
                     visited.add(neighbor);
                 }
             }
         }
-
         return returnVal;
     }
 
     public ArrayList<UUID> postDFS(UUID first) {
-        ArrayList<UUID> returnVal = dfsHelper(first, "post", new ArrayList<UUID>(), new ArrayList<UUID>());
-        return returnVal;
-    }
-
-    public ArrayList<UUID> postDFSIter(UUID first) { // needs to be tested - this could really be wrong!!!
         ArrayList<UUID> returnVal = new ArrayList<>();
 
         Stack<UUID> stack = new Stack();
@@ -176,7 +149,6 @@ public class GraphDB {
                 }
             }
         }
-
         return returnVal;
     }
 
