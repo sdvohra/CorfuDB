@@ -41,7 +41,12 @@ public class GraphDB {
         nodes.put(uuid, new Node(uuid, name));
     }
 
-    public void addNode(UUID uuid, String name, String type) {
+    public void addNode(UUID uuid, String name, String type) throws Exception {
+        // Error Handling
+        if (nodes.get(uuid) != null) {
+            throw new Exception("NodeAlreadyExistsException");
+        }
+
         if (type.equals("Transport Zone")) {
             TransportZone tz = new TransportZone(uuid, name);
             nodes.put(uuid, tz);
@@ -57,13 +62,25 @@ public class GraphDB {
         }
     }
 
-    public void update(UUID uuid, Map<String, Object> props) { // is this better?
+    public void update(UUID uuid, Map<String, Object> props) throws Exception { // is this better?
+        // Error Handling
+        if (nodes.get(uuid) == null) {
+            throw new Exception("NodeDoesNotExistException");
+        }
+
         Node n = new Node(uuid, nodes.get(uuid).getName(), props);
         nodes.put(uuid, n);
         //nodes.get(uuid).getProperties().putAll(props);
     }
 
-    public void removeNode(UUID uuid) { nodes.remove(uuid); }
+    public void removeNode(UUID uuid) throws Exception {
+        // Error Handling
+        if (nodes.get(uuid) == null) {
+            throw new Exception("NodeDoesNotExistException");
+        }
+
+        nodes.remove(uuid);
+    }
 
     public int getNumNodes() {
         return nodes.size();
@@ -89,7 +106,12 @@ public class GraphDB {
     }
 
     /** Returns an iterable of nodes of all nodes adjacent to v. */
-    public Iterable<UUID> adjacent(UUID v) {
+    public Iterable<UUID> adjacent(UUID v) throws Exception {
+        // Error Handling
+        if (nodes.get(v) == null) {
+            throw new Exception("NodeDoesNotExistException");
+        }
+
         ArrayList<UUID> edgeList = nodes.get(v).getEdges();
         ArrayList<UUID> returnVal = new ArrayList<>();
         for (UUID e : edgeList) {
@@ -103,7 +125,12 @@ public class GraphDB {
         nodes.clear();
     }
 
-    public ArrayList<UUID> preDFS(UUID first) {
+    public ArrayList<UUID> preDFS(UUID first) throws Exception {
+        // Error Handling
+        if (nodes.get(first) == null) {
+            throw new Exception("NodeDoesNotExistException");
+        }
+
         ArrayList<UUID> returnVal = new ArrayList<>();
 
         Stack<UUID> stack = new Stack();
@@ -128,7 +155,12 @@ public class GraphDB {
         return returnVal;
     }
 
-    public ArrayList<UUID> postDFS(UUID first) {
+    public ArrayList<UUID> postDFS(UUID first) throws Exception{
+        // Error Handling
+        if (nodes.get(first) == null) {
+            throw new Exception("NodeDoesNotExistException");
+        }
+
         ArrayList<UUID> returnVal = new ArrayList<>();
 
         Stack<UUID> stack = new Stack();
@@ -152,7 +184,12 @@ public class GraphDB {
         return returnVal;
     }
 
-    public ArrayList<UUID> BFS(UUID first) {
+    public ArrayList<UUID> BFS(UUID first) throws Exception {
+        // Error Handling
+        if (nodes.get(first) == null) {
+            throw new Exception("NodeDoesNotExistException");
+        }
+
         ArrayList<UUID> ordered = new ArrayList<>();
         ArrayList<UUID> fringe = new ArrayList<>();
         fringe.add(first);
