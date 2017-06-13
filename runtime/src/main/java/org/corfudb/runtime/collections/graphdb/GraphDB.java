@@ -79,6 +79,9 @@ public class GraphDB {
             throw new Exception("NodeDoesNotExistException");
         }
 
+        for (UUID neighbor : nodes.get(uuid).getEdges()) {
+            nodes.get(neighbor).removeEdge(uuid);
+        }
         nodes.remove(uuid);
     }
 

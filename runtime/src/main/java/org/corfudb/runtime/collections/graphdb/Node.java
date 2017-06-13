@@ -12,7 +12,7 @@ import java.util.UUID;
 public class Node {
     UUID id;
     String name;
-    ArrayList<UUID> edges;
+    ArrayList<UUID> edges; // sequential for testing purposes
     Map<String, Object> properties;
 
     public Node() {
@@ -74,4 +74,6 @@ public class Node {
     public void setProperties(HashMap<String, Object> props) {
         properties = props;
     }
+
+    public void removeEdge(UUID e) { edges.remove(e); }
 }

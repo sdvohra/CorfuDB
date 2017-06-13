@@ -147,9 +147,8 @@ public class AppContext {
         expected.add("TransportNode2.1");
         expected.add("LogicalSwitch3.1");
         expected.add("LogicalSwitch3.2");
-        Iterable<UUID> adj = null;
         try {
-            adj = myApp.getGraph().adjacent(TZ1);
+            Iterable<UUID> adj = myApp.getGraph().adjacent(TZ1);
             for (UUID friend : adj) {
                 actual.add(myApp.getGraph().getNodes().get(friend).getName());
             } // expect: TN1.1, TN1.2, TN2.1, LS3.1, LS3.2
