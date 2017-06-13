@@ -134,7 +134,6 @@ public class AppContext {
             actual.add(myApp.getGraph().getNodes().get(friend).getName());
         } // expect: TN1.1, TN1.2, TN2.1, LS3.1, LS3.2
         Assert.assertEquals(actual, expected);
-        System.out.println();
 
         ArrayList<UUID> pre = myApp.getGraph().preDFS(TZ1);
         actual.clear();
@@ -152,7 +151,6 @@ public class AppContext {
             actual.add(myApp.getGraph().getNodes().get(item).getName());
         } // expect: TZ0, TN1.1, TN1.2, TN2.1, LS3.1, LP0.2, LP2.2, LS3.2, LP1.2
         Assert.assertEquals(actual, expected);
-        System.out.println();
 
         ArrayList<UUID> post = myApp.getGraph().postDFS(TZ1);
         actual.clear();
@@ -170,7 +168,6 @@ public class AppContext {
             actual.add(myApp.getGraph().getNodes().get(item).getName());
         } // expect: TN1.1, TN1.2, TN2.1, LP0.2, LP2.2, LS3.1, LP1.2, LS3.2, TZ0
         Assert.assertEquals(actual, expected);
-        System.out.println();
 
         ArrayList<UUID> bfs = myApp.getGraph().BFS(TZ1);
         actual.clear();
@@ -188,9 +185,9 @@ public class AppContext {
             actual.add(myApp.getGraph().getNodes().get(item).getName());
         } // expect: TZ0, TN1.1, TN1.2, TN2.1, LS3.1, LS3.2, LP0.2, LP2.2, LP1.2
         Assert.assertEquals(actual, expected);
-        System.out.println();
 
-        //myApp.getGraph().clear();
+        myApp.getGraph().clear();
+        Assert.assertEquals(myApp.getGraph().getNumNodes(), 0);
     }
 
     //@Test
