@@ -137,21 +137,57 @@ public class AppContext {
         System.out.println();
 
         ArrayList<UUID> pre = myApp.getGraph().preDFS(TZ1);
+        actual.clear();
+        expected.clear();
+        expected.add("TransportZone0");
+        expected.add("TransportNode1.1");
+        expected.add("TransportNode1.2");
+        expected.add("TransportNode2.1");
+        expected.add("LogicalSwitch3.1");
+        expected.add("LogicalPort0.2");
+        expected.add("LogicalPort2.2");
+        expected.add("LogicalSwitch3.2");
+        expected.add("LogicalPort1.2");
         for (UUID item : pre) {
-            System.out.println(myApp.getGraph().getNodes().get(item).getName());
+            actual.add(myApp.getGraph().getNodes().get(item).getName());
         } // expect: TZ0, TN1.1, TN1.2, TN2.1, LS3.1, LP0.2, LP2.2, LS3.2, LP1.2
+        Assert.assertEquals(actual, expected);
         System.out.println();
 
         ArrayList<UUID> post = myApp.getGraph().postDFS(TZ1);
+        actual.clear();
+        expected.clear();
+        expected.add("TransportNode1.1");
+        expected.add("TransportNode1.2");
+        expected.add("TransportNode2.1");
+        expected.add("LogicalPort0.2");
+        expected.add("LogicalPort2.2");
+        expected.add("LogicalSwitch3.1");
+        expected.add("LogicalPort1.2");
+        expected.add("LogicalSwitch3.2");
+        expected.add("TransportZone0");
         for (UUID item : post) {
-            System.out.println(myApp.getGraph().getNodes().get(item).getName());
+            actual.add(myApp.getGraph().getNodes().get(item).getName());
         } // expect: TN1.1, TN1.2, TN2.1, LP0.2, LP2.2, LS3.1, LP1.2, LS3.2, TZ0
+        Assert.assertEquals(actual, expected);
         System.out.println();
 
         ArrayList<UUID> bfs = myApp.getGraph().BFS(TZ1);
+        actual.clear();
+        expected.clear();
+        expected.add("TransportZone0");
+        expected.add("TransportNode1.1");
+        expected.add("TransportNode1.2");
+        expected.add("TransportNode2.1");
+        expected.add("LogicalSwitch3.1");
+        expected.add("LogicalSwitch3.2");
+        expected.add("LogicalPort0.2");
+        expected.add("LogicalPort2.2");
+        expected.add("LogicalPort1.2");
         for (UUID item : bfs) {
-            System.out.println(myApp.getGraph().getNodes().get(item).getName());
+            actual.add(myApp.getGraph().getNodes().get(item).getName());
         } // expect: TZ0, TN1.1, TN1.2, TN2.1, LS3.1, LS3.2, LP0.2, LP2.2, LP1.2
+        Assert.assertEquals(actual, expected);
         System.out.println();
 
         //myApp.getGraph().clear();
