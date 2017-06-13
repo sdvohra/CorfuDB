@@ -17,20 +17,8 @@ import java.util.UUID;
 public class LogicalSwitch extends Node {
     // Transport zone which is the diameter of the network. A switch belongs to
     // one transport zone
-    UUID tzId; // will be modified when adding Edges
+    UUID tzId;
     List<UUID> profiles;
-
-    public LogicalSwitch() {
-        super();
-        tzId = null;
-        profiles = new ArrayList<>();
-    }
-
-    public LogicalSwitch(UUID uuid) {
-        super(uuid);
-        tzId = null;
-        profiles = new ArrayList<>();
-    }
 
     public LogicalSwitch(UUID uuid, String n) {
         super(uuid, n);
@@ -38,13 +26,9 @@ public class LogicalSwitch extends Node {
         profiles = new ArrayList<>();
     }
 
-    public LogicalSwitch(UUID uuid, String n, HashMap<String, Object> props) {
-        super(uuid, n, props);
-        tzId = null;
-        profiles = new ArrayList<>();
-    }
-
-    public void connectToTZ(UUID uuid) {
-        tzId = uuid;
+    @Override
+    public void addEdge(Node n) {
+        super.addEdge(n);
+        tzId = n.getID();
     }
 }

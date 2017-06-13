@@ -33,42 +33,20 @@ public class GraphDB {
 
     public Node getNode(UUID id) { return nodes.get(id); }
 
-    public void addNode(UUID uuid) {
-        nodes.put(uuid, new Node(uuid));
-    }
-
-    public void addNode(UUID uuid, String name) {
-        nodes.put(uuid, new Node(uuid, name));
-    }
-
-    public void addNode(UUID uuid, String name, String type) throws Exception {
+    public void addNode(UUID uuid, Node n) throws Exception {
         // Error Handling
         if (nodes.get(uuid) != null) {
             throw new Exception("NodeAlreadyExistsException");
         }
-
-        if (type.equals("Transport Zone")) {
-            TransportZone tz = new TransportZone(uuid, name);
-            nodes.put(uuid, tz);
-        } else if (type.equals("Transport Node")) {
-            TransportNode tn = new TransportNode(uuid, name);
-            nodes.put(uuid, tn);
-        } else if (type.equals("Logical Switch")) {
-            LogicalSwitch ls = new LogicalSwitch(uuid, name);
-            nodes.put(uuid, ls);
-        } else if (type.equals("Logical Port")) {
-            LogicalPort lp = new LogicalPort(uuid, name);
-            nodes.put(uuid, lp);
-        }
+        nodes.put(uuid, n);
     }
 
-    public void update(UUID uuid, Map<String, Object> props) throws Exception { // is this better?
+    public void update(UUID uuid, Node n) throws Exception { // is this better?
         // Error Handling
         if (nodes.get(uuid) == null) {
             throw new Exception("NodeDoesNotExistException");
         }
 
-        Node n = new Node(uuid, nodes.get(uuid).getName(), props);
         nodes.put(uuid, n);
         //nodes.get(uuid).getProperties().putAll(props);
     }
@@ -90,16 +68,7 @@ public class GraphDB {
     }
 
     public void addEdge(Node from, Node to) {
-        if (from instanceof TransportNode) {
-            ((TransportNode) from).addTransportZoneID(to.getID());
-        } else if (from instanceof LogicalSwitch) {
-            ((LogicalSwitch) from).connectToTZ(to.getID());
-        } else if (from instanceof LogicalPort) {
-            ((LogicalPort) from).connectToLS(to.getID());
-        }
-
-        from.addEdge(to.getID());
-        to.addEdge(from.getID());
+        from.addEdge(to);
     }
 
     public void addEdge(UUID from, UUID to) {

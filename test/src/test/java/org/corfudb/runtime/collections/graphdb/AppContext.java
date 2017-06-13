@@ -6,7 +6,6 @@ import org.docopt.Docopt;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
@@ -29,7 +28,7 @@ public class AppContext {
     public UUID createTransportZone(String name) {
         UUID curr = UUID.randomUUID();
         try {
-            graph.addNode(curr, name, "Transport Zone");
+            graph.addNode(curr, new TransportZone(curr, name));
         } catch (Exception e) {
             return createTransportZone(name);
         }
@@ -40,7 +39,7 @@ public class AppContext {
     public UUID createTransportNode(String name) {
         UUID curr = UUID.randomUUID();
         try {
-            graph.addNode(curr, name, "Transport Node");
+            graph.addNode(curr, new TransportNode(curr, name));
         } catch (Exception e) {
             return createTransportNode(name);
         }
@@ -51,7 +50,7 @@ public class AppContext {
     public UUID createLogicalSwitch(String name) {
         UUID curr = UUID.randomUUID();
         try {
-            graph.addNode(curr, name, "Logical Switch");
+            graph.addNode(curr, new LogicalSwitch(curr, name));
         } catch (Exception e) {
             return createLogicalSwitch(name);
         }
@@ -62,7 +61,7 @@ public class AppContext {
     public UUID createLogicalPort(String name) {
         UUID curr = UUID.randomUUID();
         try {
-            graph.addNode(curr, name, "Logical Port");
+            graph.addNode(curr, new LogicalPort(curr, name));
         } catch (Exception e) {
             return createLogicalPort(name);
         }

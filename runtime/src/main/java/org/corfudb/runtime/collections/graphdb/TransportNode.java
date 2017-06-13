@@ -17,27 +17,14 @@ import java.util.UUID;
 public class TransportNode extends Node {
     Set<UUID> transportZoneIds;
 
-    public TransportNode() {
-        super();
-        transportZoneIds = new HashSet<>();
-    }
-
-    public TransportNode(UUID uuid) {
-        super(uuid);
-        transportZoneIds = new HashSet<>();
-    }
-
     public TransportNode(UUID uuid, String n) {
         super(uuid, n);
         transportZoneIds = new HashSet<>();
     }
 
-    public TransportNode(UUID uuid, String n, HashMap<String, Object> props) {
-        super(uuid, n, props);
-        transportZoneIds = new HashSet<>();
-    }
-
-    public void addTransportZoneID(UUID uuid) {
-        transportZoneIds.add(uuid);
+    @Override
+    public void addEdge(Node n) {
+        super.addEdge(n);
+        transportZoneIds.add(n.getID());
     }
 }

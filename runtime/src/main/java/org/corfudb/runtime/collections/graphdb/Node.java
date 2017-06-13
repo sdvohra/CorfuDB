@@ -12,35 +12,14 @@ import java.util.UUID;
 public class Node {
     UUID id;
     String name;
-    ArrayList<UUID> edges; // sequential for testing purposes
+    ArrayList<UUID> edges; // sequential data structure for testing purposes
     Map<String, Object> properties;
-
-    public Node() {
-        id = UUID.randomUUID();
-        name = "";
-        edges = new ArrayList<>();
-        properties = new HashMap<>();
-    }
-
-    public Node(UUID uuid) {
-        id = uuid;
-        name = "";
-        edges = new ArrayList<>();
-        properties = new HashMap<>();
-    }
 
     public Node(UUID uuid, String n) {
         id = uuid;
         name = n;
         edges = new ArrayList<>();
         properties = new HashMap<>();
-    }
-
-    public Node(UUID uuid, String n, Map<String, Object> props) {
-        id = uuid;
-        name = n;
-        edges = new ArrayList<>();
-        properties = props;
     }
 
     public UUID getID() {
@@ -67,8 +46,9 @@ public class Node {
         name = n;
     }
 
-    public void addEdge(UUID e) {
-        edges.add(e);
+    public void addEdge(Node n) {
+        edges.add(n.getID());
+        n.getEdges().add(this.getID());
     }
 
     public void setProperties(HashMap<String, Object> props) {

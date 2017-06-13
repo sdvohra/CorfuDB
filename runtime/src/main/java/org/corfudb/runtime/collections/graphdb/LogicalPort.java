@@ -15,23 +15,9 @@ import java.util.UUID;
 @Data
 @ToString
 public class LogicalPort extends Node {
-    UUID logicalSwitchId; // will be modified when adding Edges
+    UUID logicalSwitchId;
     Attachment attachment;
     List<UUID> profiles;
-
-    public LogicalPort() {
-        super();
-        logicalSwitchId = null;
-        attachment = null;
-        profiles = new ArrayList<>();
-    }
-
-    public LogicalPort(UUID uuid) {
-        super(uuid);
-        logicalSwitchId = null;
-        attachment = null;
-        profiles = new ArrayList<>();
-    }
 
     public LogicalPort(UUID uuid, String n) {
         super(uuid, n);
@@ -40,14 +26,9 @@ public class LogicalPort extends Node {
         profiles = new ArrayList<>();
     }
 
-    public LogicalPort(UUID uuid, String n, HashMap<String, Object> props) {
-        super(uuid, n, props);
-        logicalSwitchId = null;
-        attachment = null;
-        profiles = new ArrayList<>();
-    }
-
-    public void connectToLS(UUID uuid) {
-        logicalSwitchId = uuid;
+    @Override
+    public void addEdge(Node n) {
+        super.addEdge(n);
+        logicalSwitchId = n.getID();
     }
 }
