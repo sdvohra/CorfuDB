@@ -2,13 +2,7 @@ package org.corfudb.runtime.collections.graphdb;
 
 import org.corfudb.runtime.CorfuRuntime;
 import org.corfudb.runtime.view.AbstractViewTest;
-import org.corfudb.util.GitRepositoryState;
-import org.docopt.Docopt;
-import org.junit.Assert;
-import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Map;
 import java.util.UUID;
 
 /**

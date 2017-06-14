@@ -5,7 +5,9 @@ import org.corfudb.util.GitRepositoryState;
 import org.docopt.Docopt;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -295,5 +297,58 @@ public class AppContextTest {
 
         myApp.getGraph().clear();
         Assert.assertEquals(myApp.getGraph().getNumNodes(), 0);
+    }
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
+
+    @Test public void errorTest() {
+        AppContext myApp = new AppContext(runtime, "myGraph");
+
+        UUID random = UUID.randomUUID();
+        while (myApp.getGraph().getNode(random) != null) {
+            random = UUID.randomUUID();
+        }
+        // Expect NodeDoesNotExistException
+        try {
+            myApp.getGraph().removeNode(random);
+            Assert.fail("removeNode failed to throw NodeDoesNotExistException");
+        } catch (Exception e) {
+            Assert.assertEquals(e.getMessage(), "NodeDoesNotExistException");
+        }
+        try {
+            myApp.getGraph().update(random, null);
+            Assert.fail("update failed to throw NodeDoesNotExistException");
+        } catch (Exception e) {
+            Assert.assertEquals(e.getMessage(), "NodeDoesNotExistException");
+        }
+        try {
+            myApp.getGraph().preDFS(random);
+            Assert.fail("preDFS failed to throw NodeDoesNotExistException");
+        } catch (Exception e) {
+            Assert.assertEquals(e.getMessage(), "NodeDoesNotExistException");
+        }
+        try {
+            myApp.getGraph().postDFS(random);
+            Assert.fail("postDFS failed to throw NodeDoesNotExistException");
+        } catch (Exception e) {
+            Assert.assertEquals(e.getMessage(), "NodeDoesNotExistException");
+        }
+        try {
+            myApp.getGraph().adjacent(random);
+            Assert.fail("adjacent failed to throw NodeDoesNotExistException");
+        } catch (Exception e) {
+            Assert.assertEquals(e.getMessage(), "NodeDoesNotExistException");
+        }
+
+        // Create Transport Zone
+        UUID TZ1 = myApp.createTransportZone("TransportZone0");
+        // Expect NodeAlreadyExistsException
+        try {
+            myApp.getGraph().addNode(TZ1, null);
+            Assert.fail("addNode failed to throw NodeAlreadyExistsException");
+        } catch (Exception e) {
+            Assert.assertEquals(e.getMessage(), "NodeAlreadyExistsException");
+        }
     }
 }

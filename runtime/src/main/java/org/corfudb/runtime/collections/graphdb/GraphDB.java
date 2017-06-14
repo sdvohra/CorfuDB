@@ -41,14 +41,13 @@ public class GraphDB {
         nodes.put(uuid, n);
     }
 
-    public void update(UUID uuid, Node n) throws Exception { // is this better?
+    public void update(UUID uuid, Node n) throws Exception {
         // Error Handling
         if (nodes.get(uuid) == null) {
             throw new Exception("NodeDoesNotExistException");
         }
 
         nodes.put(uuid, n);
-        //nodes.get(uuid).getProperties().putAll(props);
     }
 
     public void removeNode(UUID uuid) throws Exception {
@@ -127,7 +126,7 @@ public class GraphDB {
         return returnVal;
     }
 
-    public ArrayList<UUID> postDFS(UUID first) throws Exception{
+    public ArrayList<UUID> postDFS(UUID first) throws Exception {
         // Error Handling
         if (nodes.get(first) == null) {
             throw new Exception("NodeDoesNotExistException");
