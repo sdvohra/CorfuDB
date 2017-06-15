@@ -64,14 +64,14 @@ public class AppContext extends AbstractViewTest {
     }
 
     public void connectTransportNode(UUID tnID, UUID tzID) {
-        graph.addEdge(tnID, tzID);
+        graph.connect(tnID, tzID);
     }
 
     public void connectLogicalSwitch(UUID lsID, UUID tzID) {
-        graph.addEdge(lsID, tzID);
+        graph.connect(lsID, tzID);
     }
 
     public void connectLogicalPort(UUID lpID, UUID lsID) {
-        graph.addEdge(lpID, lsID);
+        graph.connect(lpID, lsID);
     }
 }

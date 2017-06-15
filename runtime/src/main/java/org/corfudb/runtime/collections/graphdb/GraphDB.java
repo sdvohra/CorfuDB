@@ -64,14 +64,14 @@ public class GraphDB {
         return nodes.size();
     }
 
-    public void addEdge(Node from, Node to) {
+    public void connect(Node from, Node to) {
         from.addEdge(to);
     }
 
-    public void addEdge(UUID from, UUID to) {
+    public void connect(UUID from, UUID to) {
         Node f = getNode(from);
         Node t = getNode(to);
-        addEdge(f, t);
+        connect(f, t);
     }
 
     /** Returns an iterable of nodes of all nodes adjacent to v. */
