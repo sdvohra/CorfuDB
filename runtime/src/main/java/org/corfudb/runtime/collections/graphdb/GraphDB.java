@@ -11,16 +11,14 @@ import java.util.*;
 
 public class GraphDB {
     private Map<UUID, Node> nodes;
-    String name;
     CorfuRuntime rt;
 
-    public GraphDB(CorfuRuntime runtime, String n) {
+    public GraphDB(CorfuRuntime runtime, String name) {
         nodes = runtime.getObjectsView()
                 .build()
-                .setStreamName("B")     // stream name
+                .setStreamName(name)     // stream name
                 .setType(SMRMap.class)  // object class backed by this stream
                 .open();                // instantiate the object!
-        name = n;
         rt = runtime;
     }
 
