@@ -6,7 +6,10 @@ import org.corfudb.runtime.collections.SMRMap;
 import java.util.*;
 
 /**
- * Created by shriyav on 5/25/17.
+ * Implements GraphInterface. Uses adjacency lists to represent
+ * an undirected graph of Nodes.
+ *
+ * @author shriyav
  */
 
 public class GraphDB {

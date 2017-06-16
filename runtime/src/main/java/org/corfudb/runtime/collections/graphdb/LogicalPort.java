@@ -9,6 +9,10 @@ import java.util.List;
 import java.util.UUID;
 
 /**
+ * A logical port is an entity created in the context of a logical
+ * switch. A port would represent a point where a VM attaches itself
+ * to a switch.
+ *
  * @author mdhawan
  * edited by shriyav
  */

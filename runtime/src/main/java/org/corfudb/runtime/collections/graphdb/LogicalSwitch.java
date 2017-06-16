@@ -9,6 +9,10 @@ import java.util.List;
 import java.util.UUID;
 
 /**
+ * A distinct L2 network created in the context of a transport zone.
+ * A logical switch carries with it several feature properties that
+ * are managed by a network profile.
+ *
  * @author mdhawan
  * edited by shriyav
  */

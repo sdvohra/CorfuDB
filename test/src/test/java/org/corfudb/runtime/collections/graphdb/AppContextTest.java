@@ -14,10 +14,13 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Created by shriyav on 6/14/17.
+ * Creates an AppContext and verifies that GraphDB methods
+ * work as expected.
+ *
+ * @author shriyav
  */
 public class AppContextTest {
-    private static final String USAGE = "Usage: AppContext [-c <conf>]\n"
+    private static final String USAGE = "Usage: AppContextTest [-c <conf>]\n"
             + "Options:\n"
             + " -c <conf>     Set the configuration host and port  [default: localhost:9999]\n";
     private static boolean setUpComplete = false;

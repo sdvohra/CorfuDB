@@ -9,6 +9,9 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
+ * It is a host (hypervisor) which has been prepared for
+ * NSX connectivity and initialization.
+ *
  * @author mdhawan
  * edited by shriyav
  */

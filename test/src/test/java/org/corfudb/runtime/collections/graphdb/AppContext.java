@@ -6,7 +6,10 @@ import org.corfudb.runtime.view.AbstractViewTest;
 import java.util.UUID;
 
 /**
- * Created by shriyav on 6/7/17.
+ * Provides runtime context to tie the data access layer together. Contains
+ * the CorfuRuntime and a GraphDB. GraphDB can be constructed here.
+ *
+ * @author shriyav
  */
 public class AppContext extends AbstractViewTest {
     GraphDB graph;

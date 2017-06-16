@@ -6,7 +6,9 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Created by shriyav on 5/25/17.
+ * A single data element in a GraphDB.
+ *
+ * @author shriyav
  */
 
 public class Node {
