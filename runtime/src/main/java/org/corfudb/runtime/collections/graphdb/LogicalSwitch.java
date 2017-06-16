@@ -35,4 +35,10 @@ public class LogicalSwitch extends Node {
         super.addEdge(n);
         tzId = n.getID();
     }
+
+    @Override
+    public void removeEdge(Node n) {
+        super.removeEdge(n);
+        tzId = null;
+    }
 }

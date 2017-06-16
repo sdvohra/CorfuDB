@@ -35,4 +35,10 @@ public class LogicalPort extends Node {
         super.addEdge(n);
         logicalSwitchId = n.getID();
     }
+
+    @Override
+    public void removeEdge(Node n) {
+        super.removeEdge(n);
+        logicalSwitchId = null;
+    }
 }

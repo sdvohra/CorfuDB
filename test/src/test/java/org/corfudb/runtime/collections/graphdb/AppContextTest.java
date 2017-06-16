@@ -5,9 +5,7 @@ import org.corfudb.util.GitRepositoryState;
 import org.docopt.Docopt;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import static org.assertj.core.api.Assertions.*;
 
 import java.util.ArrayList;
@@ -358,5 +356,11 @@ public class AppContextTest {
 
         assertThatThrownBy(() -> myApp.getGraph().addNode(TZ1, null))
                 .isInstanceOf(NodeAlreadyExistsException.class);
+    }
+
+    @Test
+    public void deepGraphTest() {
+        AppContext myApp = new AppContext(runtime, "deepGraph");
+
     }
 }

@@ -1,5 +1,6 @@
 package org.corfudb.runtime.collections.graphdb;
 
+import edu.umd.cs.findbugs.ba.Edge;
 import org.corfudb.runtime.CorfuRuntime;
 import org.corfudb.runtime.collections.SMRMap;
 
@@ -36,7 +37,7 @@ public class GraphDB {
 
     public void addNode(UUID uuid, Node n) throws NodeAlreadyExistsException {
         // Error Handling
-        if (nodes.get(uuid) != null) {
+        if (getNode(uuid) != null) {
             throw new NodeAlreadyExistsException();
         }
         nodes.put(uuid, n);
@@ -44,7 +45,7 @@ public class GraphDB {
 
     public void update(UUID uuid, Node n) throws NodeDoesNotExistException {
         // Error Handling
-        if (nodes.get(uuid) == null) {
+        if (getNode(uuid) == null) {
             throw new NodeDoesNotExistException();
         }
 
@@ -53,12 +54,12 @@ public class GraphDB {
 
     public void removeNode(UUID uuid) throws NodeDoesNotExistException {
         // Error Handling
-        if (nodes.get(uuid) == null) {
+        if (getNode(uuid) == null) {
             throw new NodeDoesNotExistException();
         }
 
-        for (UUID neighbor : nodes.get(uuid).getEdges()) {
-            nodes.get(neighbor).removeEdge(uuid);
+        for (UUID neighbor : adjacent(uuid)) {
+            getNode(neighbor).removeEdge(nodes.get(uuid));
         }
         nodes.remove(uuid);
     }
@@ -68,14 +69,16 @@ public class GraphDB {
     }
 
     public void connect(Node from, Node to) throws NodeDoesNotExistException {
-        if (nodes.get(from.getID()) == null || nodes.get(to.getID()) == null) {
+        // Error Handling
+        if (getNode(from.getID()) == null || getNode(to.getID()) == null) {
             throw new NodeDoesNotExistException();
         }
         from.addEdge(to);
     }
 
     public void connect(UUID from, UUID to) throws NodeDoesNotExistException {
-        if (nodes.get(from) == null || nodes.get(to) == null) {
+        // Error Handling
+        if (getNode(from) == null || getNode(to) == null) {
             throw new NodeDoesNotExistException();
         }
         Node f = getNode(from);
@@ -83,19 +86,41 @@ public class GraphDB {
         connect(f, t);
     }
 
+    public void disconnect(Node from, Node to) throws NodeDoesNotExistException, EdgeDoesNotExistException {
+        // Error Handling
+        if (from == null || to == null) {
+            throw new NodeDoesNotExistException();
+        }
+        if (!from.getChildren().contains(to) || !to.getParents().contains(from)) {
+            throw new EdgeDoesNotExistException();
+        }
+        from.removeEdge(to);
+    }
+
+    public void disconnect(UUID from, UUID to) throws NodeDoesNotExistException, EdgeDoesNotExistException {
+        // Error Handling
+        if (getNode(from) == null || getNode(to) == null) {
+            throw new NodeDoesNotExistException();
+        }
+        if (!getNode(from).getChildren().contains(to) || !getNode(to).getParents().contains(from)) {
+            throw new EdgeDoesNotExistException();
+        }
+        Node f = getNode(from);
+        Node t = getNode(to);
+        disconnect(f, t);
+    }
+
     /** Returns an iterable of nodes of all nodes adjacent to v. */
     public Iterable<UUID> adjacent(UUID v) throws NodeDoesNotExistException {
         // Error Handling
-        if (nodes.get(v) == null) {
+        if (getNode(v) == null) {
             throw new NodeDoesNotExistException();
         }
 
-        ArrayList<UUID> edgeList = nodes.get(v).getEdges();
-        ArrayList<UUID> returnVal = new ArrayList<>();
-        for (UUID e : edgeList) {
-            returnVal.add(e);
-        }
-        return returnVal;
+        ArrayList<UUID> edgeList = new ArrayList<>();
+        edgeList.addAll(getNode(v).getParents());
+        edgeList.addAll(getNode(v).getChildren());
+        return edgeList;
     }
 
     /** Clear entire graphdb: remove all nodes/edges. */
@@ -105,7 +130,7 @@ public class GraphDB {
 
     public ArrayList<UUID> preDFS(UUID first) throws NodeDoesNotExistException {
         // Error Handling
-        if (nodes.get(first) == null) {
+        if (getNode(first) == null) {
             throw new NodeDoesNotExistException();
         }
 
@@ -121,7 +146,7 @@ public class GraphDB {
             UUID element = stack.pop();
             returnVal.add(element);
 
-            ArrayList<UUID> neighbors = nodes.get(element).getEdges();
+            ArrayList<UUID> neighbors = nodes.get(element).getChildren();
             for (int i = neighbors.size() - 1; i >= 0; i--) {
                 UUID neighbor = neighbors.get(i);
                 if (neighbor != null && !visited.contains(neighbor)) {
@@ -135,7 +160,7 @@ public class GraphDB {
 
     public ArrayList<UUID> postDFS(UUID first) throws NodeDoesNotExistException {
         // Error Handling
-        if (nodes.get(first) == null) {
+        if (getNode(first) == null) {
             throw new NodeDoesNotExistException();
         }
 
@@ -151,7 +176,7 @@ public class GraphDB {
             UUID element = stack.pop();
             returnVal.add(0, element);
 
-            ArrayList<UUID> neighbors = nodes.get(element).getEdges();
+            ArrayList<UUID> neighbors = nodes.get(element).getChildren();
             for (UUID neighbor : neighbors) {
                 if (neighbor != null && !visited.contains(neighbor)) {
                     stack.add(neighbor);
@@ -164,7 +189,7 @@ public class GraphDB {
 
     public ArrayList<UUID> BFS(UUID first) throws NodeDoesNotExistException {
         // Error Handling
-        if (nodes.get(first) == null) {
+        if (getNode(first) == null) {
             throw new NodeDoesNotExistException();
         }
 
@@ -175,7 +200,7 @@ public class GraphDB {
             UUID curr = fringe.remove(0);
             if (!ordered.contains(curr)) {
                 ordered.add(curr);
-                for (UUID neighbor : nodes.get(curr).getEdges()) {
+                for (UUID neighbor : nodes.get(curr).getChildren()) {
                     fringe.add(neighbor);
                 }
             }
