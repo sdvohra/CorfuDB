@@ -20,8 +20,8 @@ public class GraphDB {
         nodes = runtime.getObjectsView()
                 .build()
                 .setStreamName(name)     // stream name
-                .setType(SMRMap.class)  // object class backed by this stream
-                .open();                // instantiate the object!
+                .setType(SMRMap.class)   // object class backed by this stream
+                .open();                 // instantiate the object!
         rt = runtime;
     }
 
@@ -67,11 +67,17 @@ public class GraphDB {
         return nodes.size();
     }
 
-    public void connect(Node from, Node to) {
+    public void connect(Node from, Node to) throws Exception {
+        if (nodes.get(from.getID()) == null || nodes.get(to.getID()) == null) {
+            throw new Exception("NodeDoesNotExistException");
+        }
         from.addEdge(to);
     }
 
-    public void connect(UUID from, UUID to) {
+    public void connect(UUID from, UUID to) throws Exception {
+        if (nodes.get(from) == null || nodes.get(to) == null) {
+            throw new Exception("NodeDoesNotExistException");
+        }
         Node f = getNode(from);
         Node t = getNode(to);
         connect(f, t);

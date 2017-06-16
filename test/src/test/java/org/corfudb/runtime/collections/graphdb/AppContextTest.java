@@ -78,14 +78,18 @@ public class AppContextTest {
         UUID LP3 = myApp.createLogicalPort("LogicalPort1.2");
 
         // Connect the elements
-        myApp.connectTransportNode(TN1, TZ1);
-        myApp.connectTransportNode(TN2, TZ1);
-        myApp.connectTransportNode(TN3, TZ1);
-        myApp.connectLogicalSwitch(LS1, TZ1);
-        myApp.connectLogicalSwitch(LS2, TZ1);
-        myApp.connectLogicalPort(LP1, LS1);
-        myApp.connectLogicalPort(LP2, LS1);
-        myApp.connectLogicalPort(LP3, LS2);
+        try {
+            myApp.connectTransportNode(TN1, TZ1);
+            myApp.connectTransportNode(TN2, TZ1);
+            myApp.connectTransportNode(TN3, TZ1);
+            myApp.connectLogicalSwitch(LS1, TZ1);
+            myApp.connectLogicalSwitch(LS2, TZ1);
+            myApp.connectLogicalPort(LP1, LS1);
+            myApp.connectLogicalPort(LP2, LS1);
+            myApp.connectLogicalPort(LP3, LS2);
+        } catch (Exception e) {
+            System.out.println("ERROR: " + e);
+        }
 
         // Run graphdb methods!
         System.out.println(myApp.getGraph()); // should change each time it's run (b/c persistent)
@@ -127,14 +131,18 @@ public class AppContextTest {
         UUID LP3 = myApp.createLogicalPort("LogicalPort1.2");
 
         // Connect the elements
-        myApp.connectTransportNode(TN1, TZ1);
-        myApp.connectTransportNode(TN2, TZ1);
-        myApp.connectTransportNode(TN3, TZ1);
-        myApp.connectLogicalSwitch(LS1, TZ1);
-        myApp.connectLogicalSwitch(LS2, TZ1);
-        myApp.connectLogicalPort(LP1, LS1);
-        myApp.connectLogicalPort(LP2, LS1);
-        myApp.connectLogicalPort(LP3, LS2);
+        try {
+            myApp.connectTransportNode(TN1, TZ1);
+            myApp.connectTransportNode(TN2, TZ1);
+            myApp.connectTransportNode(TN3, TZ1);
+            myApp.connectLogicalSwitch(LS1, TZ1);
+            myApp.connectLogicalSwitch(LS2, TZ1);
+            myApp.connectLogicalPort(LP1, LS1);
+            myApp.connectLogicalPort(LP2, LS1);
+            myApp.connectLogicalPort(LP3, LS2);
+        } catch (Exception e) {
+            System.out.println("ERROR: " + e);
+        }
 
         // Run graphdb methods!
         System.out.println(myApp.getGraph()); // should change each time it's run (b/c persistent)
@@ -181,14 +189,18 @@ public class AppContextTest {
         UUID LP3 = myApp.createLogicalPort("LogicalPort1.2");
 
         // Connect the elements
-        myApp.connectTransportNode(TN1, TZ1);
-        myApp.connectTransportNode(TN2, TZ1);
-        myApp.connectTransportNode(TN3, TZ1);
-        myApp.connectLogicalSwitch(LS1, TZ1);
-        myApp.connectLogicalSwitch(LS2, TZ1);
-        myApp.connectLogicalPort(LP1, LS1);
-        myApp.connectLogicalPort(LP2, LS1);
-        myApp.connectLogicalPort(LP3, LS2);
+        try {
+            myApp.connectTransportNode(TN1, TZ1);
+            myApp.connectTransportNode(TN2, TZ1);
+            myApp.connectTransportNode(TN3, TZ1);
+            myApp.connectLogicalSwitch(LS1, TZ1);
+            myApp.connectLogicalSwitch(LS2, TZ1);
+            myApp.connectLogicalPort(LP1, LS1);
+            myApp.connectLogicalPort(LP2, LS1);
+            myApp.connectLogicalPort(LP3, LS2);
+        } catch (Exception e) {
+            System.out.println("ERROR: " + e);
+        }
 
         // Run graphdb methods!
         System.out.println(myApp.getGraph()); // should change each time it's run (b/c persistent)
@@ -235,14 +247,18 @@ public class AppContextTest {
         UUID LP3 = myApp.createLogicalPort("LogicalPort1.2");
 
         // Connect the elements
-        myApp.connectTransportNode(TN1, TZ1);
-        myApp.connectTransportNode(TN2, TZ1);
-        myApp.connectTransportNode(TN3, TZ1);
-        myApp.connectLogicalSwitch(LS1, TZ1);
-        myApp.connectLogicalSwitch(LS2, TZ1);
-        myApp.connectLogicalPort(LP1, LS1);
-        myApp.connectLogicalPort(LP2, LS1);
-        myApp.connectLogicalPort(LP3, LS2);
+        try {
+            myApp.connectTransportNode(TN1, TZ1);
+            myApp.connectTransportNode(TN2, TZ1);
+            myApp.connectTransportNode(TN3, TZ1);
+            myApp.connectLogicalSwitch(LS1, TZ1);
+            myApp.connectLogicalSwitch(LS2, TZ1);
+            myApp.connectLogicalPort(LP1, LS1);
+            myApp.connectLogicalPort(LP2, LS1);
+            myApp.connectLogicalPort(LP3, LS2);
+        } catch (Exception e) {
+            System.out.println("ERROR: " + e);
+        }
 
         // Run graphdb methods!
         System.out.println(myApp.getGraph()); // should change each time it's run (b/c persistent)
@@ -289,14 +305,18 @@ public class AppContextTest {
         UUID LP3 = myApp.createLogicalPort("LogicalPort1.2");
 
         // Connect the elements
-        myApp.connectTransportNode(TN1, TZ1);
-        myApp.connectTransportNode(TN2, TZ1);
-        myApp.connectTransportNode(TN3, TZ1);
-        myApp.connectLogicalSwitch(LS1, TZ1);
-        myApp.connectLogicalSwitch(LS2, TZ1);
-        myApp.connectLogicalPort(LP1, LS1);
-        myApp.connectLogicalPort(LP2, LS1);
-        myApp.connectLogicalPort(LP3, LS2);
+        try {
+            myApp.connectTransportNode(TN1, TZ1);
+            myApp.connectTransportNode(TN2, TZ1);
+            myApp.connectTransportNode(TN3, TZ1);
+            myApp.connectLogicalSwitch(LS1, TZ1);
+            myApp.connectLogicalSwitch(LS2, TZ1);
+            myApp.connectLogicalPort(LP1, LS1);
+            myApp.connectLogicalPort(LP2, LS1);
+            myApp.connectLogicalPort(LP3, LS2);
+        } catch (Exception e) {
+            System.out.println("ERROR: " + e);
+        }
 
         myApp.getGraph().clear();
         Assert.assertEquals(myApp.getGraph().getNumNodes(), 0);

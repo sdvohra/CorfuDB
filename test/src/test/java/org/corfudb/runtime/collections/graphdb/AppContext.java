@@ -66,15 +66,15 @@ public class AppContext extends AbstractViewTest {
         return curr;
     }
 
-    public void connectTransportNode(UUID tnID, UUID tzID) {
+    public void connectTransportNode(UUID tnID, UUID tzID) throws Exception {
         graph.connect(tnID, tzID);
     }
 
-    public void connectLogicalSwitch(UUID lsID, UUID tzID) {
+    public void connectLogicalSwitch(UUID lsID, UUID tzID) throws Exception {
         graph.connect(lsID, tzID);
     }
 
-    public void connectLogicalPort(UUID lpID, UUID lsID) {
+    public void connectLogicalPort(UUID lpID, UUID lsID) throws Exception {
         graph.connect(lpID, lsID);
     }
 }
