@@ -8,6 +8,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import static org.assertj.core.api.Assertions.*;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -322,56 +323,40 @@ public class AppContextTest {
         Assert.assertEquals(myApp.getGraph().getNumNodes(), 0);
     }
 
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
-
-    @Test public void errorTest() {
+    @Test
+    public void errorTest() {
         AppContext myApp = new AppContext(runtime, "myGraph");
+        // Create Transport Zone
+        UUID TZ1 = myApp.createTransportZone("TransportZone0");
 
         UUID random = UUID.randomUUID();
         while (myApp.getGraph().getNode(random) != null) {
             random = UUID.randomUUID();
         }
-        // Expect NodeDoesNotExistException
-        try {
-            myApp.getGraph().removeNode(random);
-            Assert.fail("removeNode failed to throw NodeDoesNotExistException");
-        } catch (Exception e) {
-            Assert.assertEquals(e.getMessage(), "NodeDoesNotExistException");
-        }
-        try {
-            myApp.getGraph().update(random, null);
-            Assert.fail("update failed to throw NodeDoesNotExistException");
-        } catch (Exception e) {
-            Assert.assertEquals(e.getMessage(), "NodeDoesNotExistException");
-        }
-        try {
-            myApp.getGraph().preDFS(random);
-            Assert.fail("preDFS failed to throw NodeDoesNotExistException");
-        } catch (Exception e) {
-            Assert.assertEquals(e.getMessage(), "NodeDoesNotExistException");
-        }
-        try {
-            myApp.getGraph().postDFS(random);
-            Assert.fail("postDFS failed to throw NodeDoesNotExistException");
-        } catch (Exception e) {
-            Assert.assertEquals(e.getMessage(), "NodeDoesNotExistException");
-        }
-        try {
-            myApp.getGraph().adjacent(random);
-            Assert.fail("adjacent failed to throw NodeDoesNotExistException");
-        } catch (Exception e) {
-            Assert.assertEquals(e.getMessage(), "NodeDoesNotExistException");
-        }
+        final UUID finalRandom = random;
 
-        // Create Transport Zone
-        UUID TZ1 = myApp.createTransportZone("TransportZone0");
-        // Expect NodeAlreadyExistsException
-        try {
-            myApp.getGraph().addNode(TZ1, null);
-            Assert.fail("addNode failed to throw NodeAlreadyExistsException");
-        } catch (Exception e) {
-            Assert.assertEquals(e.getMessage(), "NodeAlreadyExistsException");
-        }
+        assertThatThrownBy(() -> myApp.getGraph().update(finalRandom, null))
+                .isInstanceOf(NodeDoesNotExistException.class);
+
+        assertThatThrownBy(() -> myApp.getGraph().removeNode(finalRandom))
+                .isInstanceOf(NodeDoesNotExistException.class);
+
+        assertThatThrownBy(() -> myApp.getGraph().connect(finalRandom, null))
+                .isInstanceOf(NodeDoesNotExistException.class);
+
+        assertThatThrownBy(() -> myApp.getGraph().adjacent(finalRandom))
+                .isInstanceOf(NodeDoesNotExistException.class);
+
+        assertThatThrownBy(() -> myApp.getGraph().preDFS(finalRandom))
+                .isInstanceOf(NodeDoesNotExistException.class);
+
+        assertThatThrownBy(() -> myApp.getGraph().postDFS(finalRandom))
+                .isInstanceOf(NodeDoesNotExistException.class);
+
+        assertThatThrownBy(() -> myApp.getGraph().BFS(finalRandom))
+                .isInstanceOf(NodeDoesNotExistException.class);
+
+        assertThatThrownBy(() -> myApp.getGraph().addNode(TZ1, null))
+                .isInstanceOf(NodeAlreadyExistsException.class);
     }
 }

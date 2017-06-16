@@ -34,27 +34,27 @@ public class GraphDB {
 
     public Node getNode(UUID id) { return nodes.get(id); }
 
-    public void addNode(UUID uuid, Node n) throws Exception {
+    public void addNode(UUID uuid, Node n) throws NodeAlreadyExistsException {
         // Error Handling
         if (nodes.get(uuid) != null) {
-            throw new Exception("NodeAlreadyExistsException");
+            throw new NodeAlreadyExistsException();
         }
         nodes.put(uuid, n);
     }
 
-    public void update(UUID uuid, Node n) throws Exception {
+    public void update(UUID uuid, Node n) throws NodeDoesNotExistException {
         // Error Handling
         if (nodes.get(uuid) == null) {
-            throw new Exception("NodeDoesNotExistException");
+            throw new NodeDoesNotExistException();
         }
 
         nodes.put(uuid, n);
     }
 
-    public void removeNode(UUID uuid) throws Exception {
+    public void removeNode(UUID uuid) throws NodeDoesNotExistException {
         // Error Handling
         if (nodes.get(uuid) == null) {
-            throw new Exception("NodeDoesNotExistException");
+            throw new NodeDoesNotExistException();
         }
 
         for (UUID neighbor : nodes.get(uuid).getEdges()) {
@@ -67,16 +67,16 @@ public class GraphDB {
         return nodes.size();
     }
 
-    public void connect(Node from, Node to) throws Exception {
+    public void connect(Node from, Node to) throws NodeDoesNotExistException {
         if (nodes.get(from.getID()) == null || nodes.get(to.getID()) == null) {
-            throw new Exception("NodeDoesNotExistException");
+            throw new NodeDoesNotExistException();
         }
         from.addEdge(to);
     }
 
-    public void connect(UUID from, UUID to) throws Exception {
+    public void connect(UUID from, UUID to) throws NodeDoesNotExistException {
         if (nodes.get(from) == null || nodes.get(to) == null) {
-            throw new Exception("NodeDoesNotExistException");
+            throw new NodeDoesNotExistException();
         }
         Node f = getNode(from);
         Node t = getNode(to);
@@ -84,10 +84,10 @@ public class GraphDB {
     }
 
     /** Returns an iterable of nodes of all nodes adjacent to v. */
-    public Iterable<UUID> adjacent(UUID v) throws Exception {
+    public Iterable<UUID> adjacent(UUID v) throws NodeDoesNotExistException {
         // Error Handling
         if (nodes.get(v) == null) {
-            throw new Exception("NodeDoesNotExistException");
+            throw new NodeDoesNotExistException();
         }
 
         ArrayList<UUID> edgeList = nodes.get(v).getEdges();
@@ -103,10 +103,10 @@ public class GraphDB {
         nodes.clear();
     }
 
-    public ArrayList<UUID> preDFS(UUID first) throws Exception {
+    public ArrayList<UUID> preDFS(UUID first) throws NodeDoesNotExistException {
         // Error Handling
         if (nodes.get(first) == null) {
-            throw new Exception("NodeDoesNotExistException");
+            throw new NodeDoesNotExistException();
         }
 
         ArrayList<UUID> returnVal = new ArrayList<>();
@@ -133,10 +133,10 @@ public class GraphDB {
         return returnVal;
     }
 
-    public ArrayList<UUID> postDFS(UUID first) throws Exception {
+    public ArrayList<UUID> postDFS(UUID first) throws NodeDoesNotExistException {
         // Error Handling
         if (nodes.get(first) == null) {
-            throw new Exception("NodeDoesNotExistException");
+            throw new NodeDoesNotExistException();
         }
 
         ArrayList<UUID> returnVal = new ArrayList<>();
@@ -162,10 +162,10 @@ public class GraphDB {
         return returnVal;
     }
 
-    public ArrayList<UUID> BFS(UUID first) throws Exception {
+    public ArrayList<UUID> BFS(UUID first) throws NodeDoesNotExistException {
         // Error Handling
         if (nodes.get(first) == null) {
-            throw new Exception("NodeDoesNotExistException");
+            throw new NodeDoesNotExistException();
         }
 
         ArrayList<UUID> ordered = new ArrayList<>();
