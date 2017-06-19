@@ -1,7 +1,10 @@
 package org.corfudb.runtime.collections.graphdb;
 
 /**
- * Created by shriyav on 6/15/17.
+ * Interface class that represents a single, composite item.
+ * Contains the following methods.
+ *
+ * @author shriyav
  */
 public interface NodeInterface {
 

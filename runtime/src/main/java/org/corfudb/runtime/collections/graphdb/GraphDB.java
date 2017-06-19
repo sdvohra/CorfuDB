@@ -1,6 +1,5 @@
 package org.corfudb.runtime.collections.graphdb;
 
-import edu.umd.cs.findbugs.ba.Edge;
 import org.corfudb.runtime.CorfuRuntime;
 import org.corfudb.runtime.collections.SMRMap;
 
