@@ -108,7 +108,7 @@ public class AppContextTest {
         } catch (Exception e) {
             System.out.println("ERROR: " + e);
         }
-        Assert.assertEquals(actual, expected);
+        Assert.assertEquals(expected, actual);
     }
 
     @Test
@@ -166,7 +166,7 @@ public class AppContextTest {
         } catch (Exception e) {
             System.out.println("ERROR: " + e);
         }
-        Assert.assertEquals(actual, expected);
+        Assert.assertEquals(expected, actual);
     }
 
     @Test
@@ -224,7 +224,7 @@ public class AppContextTest {
         } catch (Exception e) {
             System.out.println("ERROR: " + e);
         }
-        Assert.assertEquals(actual, expected);
+        Assert.assertEquals(expected, actual);
     }
 
     @Test
@@ -282,7 +282,7 @@ public class AppContextTest {
         } catch (Exception e) {
             System.out.println("ERROR: " + e);
         }
-        Assert.assertEquals(actual, expected);
+        Assert.assertEquals(expected, actual);
     }
 
     @Test
@@ -318,7 +318,7 @@ public class AppContextTest {
         }
 
         myApp.getGraph().clear();
-        Assert.assertEquals(myApp.getGraph().getNumNodes(), 0);
+        Assert.assertEquals(0, myApp.getGraph().getNumNodes());
     }
 
     @Test
