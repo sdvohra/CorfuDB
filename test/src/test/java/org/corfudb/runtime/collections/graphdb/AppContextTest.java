@@ -362,5 +362,24 @@ public class AppContextTest {
     public void deepGraphTest() {
         AppContext myApp = new AppContext(runtime, "deepGraph");
 
+        ArrayList<UUID> ids = new ArrayList<>();
+        for (int i = 0; i < 10000; i++) {
+            ids.add(myApp.createTransportNode("TN" + i));
+        }
+        for (int i = 0; i < 9999; i++) {
+            try {
+                myApp.connectTransportNode(ids.get(i), ids.get(i + 1));
+            } catch (Exception e) {
+                System.out.println(e);
+            }
+        }
+        try {
+            ArrayList<UUID> ordered = myApp.getGraph().preDFS(ids.get(0));
+            for (UUID item : ordered) {
+                System.out.println(item);
+            }
+        } catch (Exception e) {
+            System.out.println(e);
+        }
     }
 }
