@@ -20,7 +20,6 @@ import java.util.UUID;
 @ToString
 public class TransportNode {
     UUID id;
-    Set<UUID> transportZoneIds;
     String name;
     Map<String, Object> properties;
 }

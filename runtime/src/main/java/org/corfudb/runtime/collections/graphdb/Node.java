@@ -21,6 +21,10 @@ public class Node {
 
     public Integer getID() { return value.hashCode(); }
 
+    public Object getValue() {
+        return value;
+    }
+
     public ArrayList<Integer> getParents() {
         return parents;
     }

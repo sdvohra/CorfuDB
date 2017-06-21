@@ -3,10 +3,7 @@ package org.corfudb.runtime.collections.graphdb;
 import org.corfudb.runtime.CorfuRuntime;
 import org.corfudb.runtime.view.AbstractViewTest;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Provides runtime context to tie the data access layer together. Contains
@@ -26,31 +23,35 @@ public class AppContext extends AbstractViewTest {
     }
 
     /** Creates new TransportZone in graph and returns ID of new Node in graph. */
-    public Integer createTransportZone(UUID uuid, String name, Map<String, String> props)
+    public TransportZone createTransportZone(UUID uuid, String name, Map<String, String> props)
             throws NodeAlreadyExistsException {
         TransportZone tz = new TransportZone(uuid, name, props);
-        return graph.addNode(tz);
+        graph.addNode(tz);
+        return tz;
     }
 
     /** Creates new TransportNode in graph and returns ID of new Node in graph. */
-    public Integer createTransportNode(UUID uuid, String name, Set<UUID> tzIds,
-                                   Map<String, Object> props) throws NodeAlreadyExistsException {
-        TransportNode tn = new TransportNode(uuid, tzIds, name, props);
-        return graph.addNode(tn);
+    public TransportNode createTransportNode(UUID uuid, String name, Map<String, Object> props)
+            throws NodeAlreadyExistsException {
+        TransportNode tn = new TransportNode(uuid, name, props);
+        graph.addNode(tn);
+        return tn;
     }
 
     /** Creates new LogicalSwitch in graph and returns ID of new Node in graph. */
-    public Integer createLogicalSwitch(UUID uuid, String name, UUID tzUUID, List<UUID> profs,
+    public LogicalSwitch createLogicalSwitch(UUID uuid, String name, List<UUID> profs,
                                     Map<String, Object> props) throws NodeAlreadyExistsException {
-        LogicalSwitch ls = new LogicalSwitch(uuid, name, tzUUID, profs, props);
-        return graph.addNode(ls);
+        LogicalSwitch ls = new LogicalSwitch(uuid, name, profs, props);
+        graph.addNode(ls);
+        return ls;
     }
 
     /** Creates new LogicalPort in graph and returns ID of new Node in graph. */
-    public Integer createLogicalPort(UUID uuid, String name, UUID lsUUID, Attachment attachment, List<UUID> profs,
+    public LogicalPort createLogicalPort(UUID uuid, String name, Attachment attachment, List<UUID> profs,
                                  Map<String, Object> props) throws NodeAlreadyExistsException {
-        LogicalPort lp = new LogicalPort(uuid, name, lsUUID, attachment, profs, props);
-        return graph.addNode(lp);
+        LogicalPort lp = new LogicalPort(uuid, name, attachment, profs, props);
+        graph.addNode(lp);
+        return lp;
     }
 
     public void connectTZtoTN(TransportZone tz, TransportNode tn) throws Exception {
@@ -63,5 +64,13 @@ public class AppContext extends AbstractViewTest {
 
     public void connectLStoLP(LogicalSwitch ls, LogicalPort lp) throws Exception {
         graph.connect(ls, lp);
+    }
+
+    public ArrayList<Integer> getParents(Object obj) {
+        return graph.getNode(obj).getParents();
+    }
+
+    public ArrayList<Integer> getChildren(Object obj) {
+        return graph.getNode(obj).getParents();
     }
 }

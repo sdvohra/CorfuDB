@@ -22,7 +22,6 @@ import java.util.UUID;
 public class LogicalPort {
     UUID id;
     String name;
-    UUID logicalSwitchId;
     Attachment attachment;
     List<UUID> profiles;
     Map<String, Object> properties;

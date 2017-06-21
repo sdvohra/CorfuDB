@@ -32,7 +32,7 @@ public class GraphDB implements Graph {
 
     public Map<Integer, Node> getNodes() { return nodes; }
 
-    public Integer addNode(Object obj) throws NodeAlreadyExistsException {
+    public void addNode(Object obj) throws NodeAlreadyExistsException {
         // Error Handling
         Node objNode = new Node(obj);
         if (getNode(objNode.getID()) != null) {
@@ -40,10 +40,14 @@ public class GraphDB implements Graph {
         }
 
         nodes.put(objNode.getID(), objNode);
-        return objNode.getID();
     }
 
-    public Node getNode(Integer id) { return nodes.get(id); }
+    private Node getNode(Integer id) { return nodes.get(id); }
+
+    public Node getNode(Object obj) {
+        Integer objID = obj.hashCode();
+        return getNode(objID);
+    }
 
     public void update(Object obj) throws NodeDoesNotExistException {
         // Error Handling
@@ -76,7 +80,7 @@ public class GraphDB implements Graph {
         Node fromNode = getNode(from.hashCode());
         Node toNode = getNode(to.hashCode());
         // Error Handling
-        if (getNode(fromNode.getID()) == null || getNode(toNode.getID()) == null) {
+        if (fromNode == null || toNode == null) {
             throw new NodeDoesNotExistException();
         }
         fromNode.addEdge(toNode);
@@ -89,7 +93,7 @@ public class GraphDB implements Graph {
         Node fromNode = getNode(from.hashCode());
         Node toNode = getNode(to.hashCode());
         // Error Handling
-        if (from == null || to == null) {
+        if (fromNode == null || toNode == null) {
             throw new NodeDoesNotExistException();
         }
         if (!fromNode.getChildren().contains(toNode) || !toNode.getParents().contains(fromNode)) {

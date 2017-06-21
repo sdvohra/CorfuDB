@@ -6,6 +6,8 @@ import org.docopt.Docopt;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import sun.rmi.transport.Transport;
+
 import static org.assertj.core.api.Assertions.*;
 
 import java.util.ArrayList;
@@ -62,30 +64,39 @@ public class AppContextTest {
     public void adjacentTest() {
         AppContext myApp = new AppContext(runtime, "myGraph");
 
-        // Create Transport Zone
-        Key TZ1 = myApp.createTransportZone("TransportZone0");
-        // Create Transport Nodes
-        Key TN1 = myApp.createTransportNode("TransportNode1.1");
-        Key TN2 = myApp.createTransportNode("TransportNode1.2");
-        Key TN3 = myApp.createTransportNode("TransportNode2.1");
-        // Create Logical Switches
-        Key LS1 = myApp.createLogicalSwitch("LogicalSwitch3.1");
-        Key LS2 = myApp.createLogicalSwitch("LogicalSwitch3.2");
-        // Create Logical Ports
-        Key LP1 = myApp.createLogicalPort("LogicalPort0.2");
-        Key LP2 = myApp.createLogicalPort("LogicalPort2.2");
-        Key LP3 = myApp.createLogicalPort("LogicalPort1.2");
+        // Create the elements
+        TransportZone TZ1 = null;
+        TransportNode TN1 = null, TN2 = null, TN3 = null;
+        LogicalSwitch LS1 = null, LS2 = null;
+        LogicalPort LP1 = null, LP2 = null, LP3 = null;
+        try {
+            // Create Transport Zone
+            TZ1 = myApp.createTransportZone(UUID.randomUUID(), "TZ1", null);
+            // Create Transport Nodes
+            TN1 = myApp.createTransportNode(UUID.randomUUID(), "TN1", null);
+            TN2 = myApp.createTransportNode(UUID.randomUUID(), "TN2", null);
+            TN3 = myApp.createTransportNode(UUID.randomUUID(), "TN3", null);
+            // Create Logical Switches
+            LS1 = myApp.createLogicalSwitch(UUID.randomUUID(), "LS1", null, null);
+            LS2 = myApp.createLogicalSwitch(UUID.randomUUID(), "LS2", null, null);
+            // Create Logical Ports
+            LP1 = myApp.createLogicalPort(UUID.randomUUID(), "LP1", null, null, null);
+            LP2 = myApp.createLogicalPort(UUID.randomUUID(), "LP2", null, null, null);
+            LP3 = myApp.createLogicalPort(UUID.randomUUID(), "LP3", null, null, null);
+        } catch(Exception e) {
+            System.out.println("ERROR: " + e);
+        }
 
         // Connect the elements
         try {
-            myApp.connectTransportNode(TN1, TZ1);
-            myApp.connectTransportNode(TN2, TZ1);
-            myApp.connectTransportNode(TN3, TZ1);
-            myApp.connectLogicalSwitch(LS1, TZ1);
-            myApp.connectLogicalSwitch(LS2, TZ1);
-            myApp.connectLogicalPort(LP1, LS1);
-            myApp.connectLogicalPort(LP2, LS1);
-            myApp.connectLogicalPort(LP3, LS2);
+            myApp.connectTZtoTN(TZ1, TN1);
+            myApp.connectTZtoTN(TZ1, TN2);
+            myApp.connectTZtoTN(TZ1, TN3);
+            myApp.connectTZtoLS(TZ1, LS1);
+            myApp.connectTZtoLS(TZ1, LS2);
+            myApp.connectLStoLP(LS1, LP1);
+            myApp.connectLStoLP(LS1, LP2);
+            myApp.connectLStoLP(LS2, LP3);
         } catch (Exception e) {
             System.out.println("ERROR: " + e);
         }
@@ -93,21 +104,22 @@ public class AppContextTest {
         // Run graphdb methods!
         System.out.println(myApp.getGraph()); // should change each time it's run (b/c persistent)
 
-        ArrayList<String> actual = new ArrayList<>();
-        ArrayList<String> expected = new ArrayList<>();
-        expected.add("TransportNode1.1");
-        expected.add("TransportNode1.2");
-        expected.add("TransportNode2.1");
-        expected.add("LogicalSwitch3.1");
-        expected.add("LogicalSwitch3.2");
+        ArrayList<Object> actual = new ArrayList<>();
+        ArrayList<Object> expected = new ArrayList<>();
+        expected.add(TN1);
+        expected.add(TN2);
+        expected.add(TN3);
+        expected.add(LS1);
+        expected.add(LS2);
         try {
-            Iterable<Key> adj = myApp.getGraph().adjacent(TZ1);
-            for (Key friend : adj) {
-                actual.add(myApp.getGraph().getNodes().get(friend).getName());
+            Iterable<Integer> adj = myApp.getGraph().adjacent(TZ1);
+            for (Integer friend : adj) {
+                actual.add(myApp.getGraph().getNode(friend).getValue());
             } // expect: TN1.1, TN1.2, TN2.1, LS3.1, LS3.2
         } catch (Exception e) {
             System.out.println("ERROR: " + e);
         }
+        System.out.println(actual);
         Assert.assertEquals(expected, actual);
     }
 
@@ -115,30 +127,39 @@ public class AppContextTest {
     public void preDFSTest() {
         AppContext myApp = new AppContext(runtime, "myGraph");
 
-        // Create Transport Zone
-        Key TZ1 = myApp.createTransportZone("TransportZone0");
-        // Create Transport Nodes
-        Key TN1 = myApp.createTransportNode("TransportNode1.1");
-        Key TN2 = myApp.createTransportNode("TransportNode1.2");
-        Key TN3 = myApp.createTransportNode("TransportNode2.1");
-        // Create Logical Switches
-        Key LS1 = myApp.createLogicalSwitch("LogicalSwitch3.1");
-        Key LS2 = myApp.createLogicalSwitch("LogicalSwitch3.2");
-        // Create Logical Ports
-        Key LP1 = myApp.createLogicalPort("LogicalPort0.2");
-        Key LP2 = myApp.createLogicalPort("LogicalPort2.2");
-        Key LP3 = myApp.createLogicalPort("LogicalPort1.2");
+        // Create the elements
+        TransportZone TZ1 = null;
+        TransportNode TN1 = null, TN2 = null, TN3 = null;
+        LogicalSwitch LS1 = null, LS2 = null;
+        LogicalPort LP1 = null, LP2 = null, LP3 = null;
+        try {
+            // Create Transport Zone
+            TZ1 = myApp.createTransportZone(UUID.randomUUID(), "TZ1", null);
+            // Create Transport Nodes
+            TN1 = myApp.createTransportNode(UUID.randomUUID(), "TN1", null);
+            TN2 = myApp.createTransportNode(UUID.randomUUID(), "TN2", null);
+            TN3 = myApp.createTransportNode(UUID.randomUUID(), "TN3", null);
+            // Create Logical Switches
+            LS1 = myApp.createLogicalSwitch(UUID.randomUUID(), "LS1", null, null);
+            LS2 = myApp.createLogicalSwitch(UUID.randomUUID(), "LS2", null, null);
+            // Create Logical Ports
+            LP1 = myApp.createLogicalPort(UUID.randomUUID(), "LP1", null, null, null);
+            LP2 = myApp.createLogicalPort(UUID.randomUUID(), "LP2", null, null, null);
+            LP3 = myApp.createLogicalPort(UUID.randomUUID(), "LP3", null, null, null);
+        } catch(Exception e) {
+            System.out.println("ERROR: " + e);
+        }
 
         // Connect the elements
         try {
-            myApp.connectTransportNode(TN1, TZ1);
-            myApp.connectTransportNode(TN2, TZ1);
-            myApp.connectTransportNode(TN3, TZ1);
-            myApp.connectLogicalSwitch(LS1, TZ1);
-            myApp.connectLogicalSwitch(LS2, TZ1);
-            myApp.connectLogicalPort(LP1, LS1);
-            myApp.connectLogicalPort(LP2, LS1);
-            myApp.connectLogicalPort(LP3, LS2);
+            myApp.connectTZtoTN(TZ1, TN1);
+            myApp.connectTZtoTN(TZ1, TN2);
+            myApp.connectTZtoTN(TZ1, TN3);
+            myApp.connectTZtoLS(TZ1, LS1);
+            myApp.connectTZtoLS(TZ1, LS2);
+            myApp.connectLStoLP(LS1, LP1);
+            myApp.connectLStoLP(LS1, LP2);
+            myApp.connectLStoLP(LS2, LP3);
         } catch (Exception e) {
             System.out.println("ERROR: " + e);
         }
@@ -146,22 +167,22 @@ public class AppContextTest {
         // Run graphdb methods!
         System.out.println(myApp.getGraph()); // should change each time it's run (b/c persistent)
 
-        ArrayList<String> actual = new ArrayList<>();
-        ArrayList<String> expected = new ArrayList<>();
+        ArrayList<Object> actual = new ArrayList<>();
+        ArrayList<Object> expected = new ArrayList<>();
 
         try {
-            Iterable<Key> pre = myApp.getGraph().preDFS(TZ1);
-            expected.add("TransportZone0");
-            expected.add("TransportNode1.1");
-            expected.add("TransportNode1.2");
-            expected.add("TransportNode2.1");
-            expected.add("LogicalSwitch3.1");
-            expected.add("LogicalPort0.2");
-            expected.add("LogicalPort2.2");
-            expected.add("LogicalSwitch3.2");
-            expected.add("LogicalPort1.2");
-            for (Key item : pre) {
-                actual.add(myApp.getGraph().getNodes().get(item).getName());
+            Iterable<Integer> pre = myApp.getGraph().preDFS(TZ1);
+            expected.add(TZ1);
+            expected.add(TN1);
+            expected.add(TN2);
+            expected.add(TN3);
+            expected.add(LS1);
+            expected.add(LP1);
+            expected.add(LP2);
+            expected.add(LS2);
+            expected.add(LP3);
+            for (Integer item : pre) {
+                actual.add(myApp.getGraph().getNode(item).getValue());
             } // expect: TZ0, TN1.1, TN1.2, TN2.1, LS3.1, LP0.2, LP2.2, LS3.2, LP1.2
         } catch (Exception e) {
             System.out.println("ERROR: " + e);
@@ -173,30 +194,39 @@ public class AppContextTest {
     public void postDFSTest() {
         AppContext myApp = new AppContext(runtime, "myGraph");
 
-        // Create Transport Zone
-        Key TZ1 = myApp.createTransportZone("TransportZone0");
-        // Create Transport Nodes
-        Key TN1 = myApp.createTransportNode("TransportNode1.1");
-        Key TN2 = myApp.createTransportNode("TransportNode1.2");
-        Key TN3 = myApp.createTransportNode("TransportNode2.1");
-        // Create Logical Switches
-        Key LS1 = myApp.createLogicalSwitch("LogicalSwitch3.1");
-        Key LS2 = myApp.createLogicalSwitch("LogicalSwitch3.2");
-        // Create Logical Ports
-        Key LP1 = myApp.createLogicalPort("LogicalPort0.2");
-        Key LP2 = myApp.createLogicalPort("LogicalPort2.2");
-        Key LP3 = myApp.createLogicalPort("LogicalPort1.2");
+        // Create the elements
+        TransportZone TZ1 = null;
+        TransportNode TN1 = null, TN2 = null, TN3 = null;
+        LogicalSwitch LS1 = null, LS2 = null;
+        LogicalPort LP1 = null, LP2 = null, LP3 = null;
+        try {
+            // Create Transport Zone
+            TZ1 = myApp.createTransportZone(UUID.randomUUID(), "TZ1", null);
+            // Create Transport Nodes
+            TN1 = myApp.createTransportNode(UUID.randomUUID(), "TN1", null);
+            TN2 = myApp.createTransportNode(UUID.randomUUID(), "TN2", null);
+            TN3 = myApp.createTransportNode(UUID.randomUUID(), "TN3", null);
+            // Create Logical Switches
+            LS1 = myApp.createLogicalSwitch(UUID.randomUUID(), "LS1", null, null);
+            LS2 = myApp.createLogicalSwitch(UUID.randomUUID(), "LS2", null, null);
+            // Create Logical Ports
+            LP1 = myApp.createLogicalPort(UUID.randomUUID(), "LP1", null, null, null);
+            LP2 = myApp.createLogicalPort(UUID.randomUUID(), "LP2", null, null, null);
+            LP3 = myApp.createLogicalPort(UUID.randomUUID(), "LP3", null, null, null);
+        } catch(Exception e) {
+            System.out.println("ERROR: " + e);
+        }
 
         // Connect the elements
         try {
-            myApp.connectTransportNode(TN1, TZ1);
-            myApp.connectTransportNode(TN2, TZ1);
-            myApp.connectTransportNode(TN3, TZ1);
-            myApp.connectLogicalSwitch(LS1, TZ1);
-            myApp.connectLogicalSwitch(LS2, TZ1);
-            myApp.connectLogicalPort(LP1, LS1);
-            myApp.connectLogicalPort(LP2, LS1);
-            myApp.connectLogicalPort(LP3, LS2);
+            myApp.connectTZtoTN(TZ1, TN1);
+            myApp.connectTZtoTN(TZ1, TN2);
+            myApp.connectTZtoTN(TZ1, TN3);
+            myApp.connectTZtoLS(TZ1, LS1);
+            myApp.connectTZtoLS(TZ1, LS2);
+            myApp.connectLStoLP(LS1, LP1);
+            myApp.connectLStoLP(LS1, LP2);
+            myApp.connectLStoLP(LS2, LP3);
         } catch (Exception e) {
             System.out.println("ERROR: " + e);
         }
@@ -204,22 +234,22 @@ public class AppContextTest {
         // Run graphdb methods!
         System.out.println(myApp.getGraph()); // should change each time it's run (b/c persistent)
 
-        ArrayList<String> actual = new ArrayList<>();
-        ArrayList<String> expected = new ArrayList<>();
+        ArrayList<Object> actual = new ArrayList<>();
+        ArrayList<Object> expected = new ArrayList<>();
 
         try {
-            Iterable<Key> post = myApp.getGraph().postDFS(TZ1);
-            expected.add("TransportNode1.1");
-            expected.add("TransportNode1.2");
-            expected.add("TransportNode2.1");
-            expected.add("LogicalPort0.2");
-            expected.add("LogicalPort2.2");
-            expected.add("LogicalSwitch3.1");
-            expected.add("LogicalPort1.2");
-            expected.add("LogicalSwitch3.2");
-            expected.add("TransportZone0");
-            for (Key item : post) {
-                actual.add(myApp.getGraph().getNodes().get(item).getName());
+            Iterable<Integer> post = myApp.getGraph().postDFS(TZ1);
+            expected.add(TN1);
+            expected.add(TN2);
+            expected.add(TN3);
+            expected.add(LP1);
+            expected.add(LP2);
+            expected.add(LS1);
+            expected.add(LP3);
+            expected.add(LS2);
+            expected.add(TZ1);
+            for (Integer item : post) {
+                actual.add(myApp.getGraph().getNode(item).getValue());
             } // expect: TN1.1, TN1.2, TN2.1, LP0.2, LP2.2, LS3.1, LP1.2, LS3.2, TZ0
         } catch (Exception e) {
             System.out.println("ERROR: " + e);
@@ -231,30 +261,39 @@ public class AppContextTest {
     public void bfsTest() {
         AppContext myApp = new AppContext(runtime, "myGraph");
 
-        // Create Transport Zone
-        Key TZ1 = myApp.createTransportZone("TransportZone0");
-        // Create Transport Nodes
-        Key TN1 = myApp.createTransportNode("TransportNode1.1");
-        Key TN2 = myApp.createTransportNode("TransportNode1.2");
-        Key TN3 = myApp.createTransportNode("TransportNode2.1");
-        // Create Logical Switches
-        Key LS1 = myApp.createLogicalSwitch("LogicalSwitch3.1");
-        Key LS2 = myApp.createLogicalSwitch("LogicalSwitch3.2");
-        // Create Logical Ports
-        Key LP1 = myApp.createLogicalPort("LogicalPort0.2");
-        Key LP2 = myApp.createLogicalPort("LogicalPort2.2");
-        Key LP3 = myApp.createLogicalPort("LogicalPort1.2");
+        // Create the elements
+        TransportZone TZ1 = null;
+        TransportNode TN1 = null, TN2 = null, TN3 = null;
+        LogicalSwitch LS1 = null, LS2 = null;
+        LogicalPort LP1 = null, LP2 = null, LP3 = null;
+        try {
+            // Create Transport Zone
+            TZ1 = myApp.createTransportZone(UUID.randomUUID(), "TZ1", null);
+            // Create Transport Nodes
+            TN1 = myApp.createTransportNode(UUID.randomUUID(), "TN1", null);
+            TN2 = myApp.createTransportNode(UUID.randomUUID(), "TN2", null);
+            TN3 = myApp.createTransportNode(UUID.randomUUID(), "TN3", null);
+            // Create Logical Switches
+            LS1 = myApp.createLogicalSwitch(UUID.randomUUID(), "LS1", null, null);
+            LS2 = myApp.createLogicalSwitch(UUID.randomUUID(), "LS2", null, null);
+            // Create Logical Ports
+            LP1 = myApp.createLogicalPort(UUID.randomUUID(), "LP1", null, null, null);
+            LP2 = myApp.createLogicalPort(UUID.randomUUID(), "LP2", null, null, null);
+            LP3 = myApp.createLogicalPort(UUID.randomUUID(), "LP3", null, null, null);
+        } catch (Exception e) {
+            System.out.println("ERROR: " + e);
+        }
 
         // Connect the elements
         try {
-            myApp.connectTransportNode(TN1, TZ1);
-            myApp.connectTransportNode(TN2, TZ1);
-            myApp.connectTransportNode(TN3, TZ1);
-            myApp.connectLogicalSwitch(LS1, TZ1);
-            myApp.connectLogicalSwitch(LS2, TZ1);
-            myApp.connectLogicalPort(LP1, LS1);
-            myApp.connectLogicalPort(LP2, LS1);
-            myApp.connectLogicalPort(LP3, LS2);
+            myApp.connectTZtoTN(TZ1, TN1);
+            myApp.connectTZtoTN(TZ1, TN2);
+            myApp.connectTZtoTN(TZ1, TN3);
+            myApp.connectTZtoLS(TZ1, LS1);
+            myApp.connectTZtoLS(TZ1, LS2);
+            myApp.connectLStoLP(LS1, LP1);
+            myApp.connectLStoLP(LS1, LP2);
+            myApp.connectLStoLP(LS2, LP3);
         } catch (Exception e) {
             System.out.println("ERROR: " + e);
         }
@@ -262,23 +301,23 @@ public class AppContextTest {
         // Run graphdb methods!
         System.out.println(myApp.getGraph()); // should change each time it's run (b/c persistent)
 
-        ArrayList<String> actual = new ArrayList<>();
-        ArrayList<String> expected = new ArrayList<>();
+        ArrayList<Object> actual = new ArrayList<>();
+        ArrayList<Object> expected = new ArrayList<>();
 
         try {
-            Iterable<Key> bfs = myApp.getGraph().BFS(TZ1);
-            expected.add("TransportZone0");
-            expected.add("TransportNode1.1");
-            expected.add("TransportNode1.2");
-            expected.add("TransportNode2.1");
-            expected.add("LogicalSwitch3.1");
-            expected.add("LogicalSwitch3.2");
-            expected.add("LogicalPort0.2");
-            expected.add("LogicalPort2.2");
-            expected.add("LogicalPort1.2");
-            for (Key item : bfs) {
-                actual.add(myApp.getGraph().getNodes().get(item).getName());
-            } // expect: TZ0, TN1.1, TN1.2, TN2.1, LS3.1, LS3.2, LP0.2, LP2.2, LP1.2
+            Iterable<Integer> bfs = myApp.getGraph().BFS(TZ1);
+            expected.add(TZ1);
+            expected.add(TN1);
+            expected.add(TN2);
+            expected.add(TN3);
+            expected.add(LS1);
+            expected.add(LS2);
+            expected.add(LP1);
+            expected.add(LP2);
+            expected.add(LP3);
+            for (Integer item : bfs) {
+                actual.add(myApp.getGraph().getNode(item).getValue());
+            } // expect: TN1.1, TN1.2, TN2.1, LP0.2, LP2.2, LS3.1, LP1.2, LS3.2, TZ0
         } catch (Exception e) {
             System.out.println("ERROR: " + e);
         }
@@ -289,30 +328,39 @@ public class AppContextTest {
     public void clearTest() {
         AppContext myApp = new AppContext(runtime, "myGraph");
 
-        // Create Transport Zone
-        Key TZ1 = myApp.createTransportZone("TransportZone0");
-        // Create Transport Nodes
-        Key TN1 = myApp.createTransportNode("TransportNode1.1");
-        Key TN2 = myApp.createTransportNode("TransportNode1.2");
-        Key TN3 = myApp.createTransportNode("TransportNode2.1");
-        // Create Logical Switches
-        Key LS1 = myApp.createLogicalSwitch("LogicalSwitch3.1");
-        Key LS2 = myApp.createLogicalSwitch("LogicalSwitch3.2");
-        // Create Logical Ports
-        Key LP1 = myApp.createLogicalPort("LogicalPort0.2");
-        Key LP2 = myApp.createLogicalPort("LogicalPort2.2");
-        Key LP3 = myApp.createLogicalPort("LogicalPort1.2");
+        // Create the elements
+        TransportZone TZ1 = null;
+        TransportNode TN1 = null, TN2 = null, TN3 = null;
+        LogicalSwitch LS1 = null, LS2 = null;
+        LogicalPort LP1 = null, LP2 = null, LP3 = null;
+        try {
+            // Create Transport Zone
+            TZ1 = myApp.createTransportZone(UUID.randomUUID(), "TZ1", null);
+            // Create Transport Nodes
+            TN1 = myApp.createTransportNode(UUID.randomUUID(), "TN1", null);
+            TN2 = myApp.createTransportNode(UUID.randomUUID(), "TN2", null);
+            TN3 = myApp.createTransportNode(UUID.randomUUID(), "TN3", null);
+            // Create Logical Switches
+            LS1 = myApp.createLogicalSwitch(UUID.randomUUID(), "LS1", null, null);
+            LS2 = myApp.createLogicalSwitch(UUID.randomUUID(), "LS2", null, null);
+            // Create Logical Ports
+            LP1 = myApp.createLogicalPort(UUID.randomUUID(), "LP1", null, null, null);
+            LP2 = myApp.createLogicalPort(UUID.randomUUID(), "LP2", null, null, null);
+            LP3 = myApp.createLogicalPort(UUID.randomUUID(), "LP3", null, null, null);
+        } catch (Exception e) {
+            System.out.println("ERROR: " + e);
+        }
 
         // Connect the elements
         try {
-            myApp.connectTransportNode(TN1, TZ1);
-            myApp.connectTransportNode(TN2, TZ1);
-            myApp.connectTransportNode(TN3, TZ1);
-            myApp.connectLogicalSwitch(LS1, TZ1);
-            myApp.connectLogicalSwitch(LS2, TZ1);
-            myApp.connectLogicalPort(LP1, LS1);
-            myApp.connectLogicalPort(LP2, LS1);
-            myApp.connectLogicalPort(LP3, LS2);
+            myApp.connectTZtoTN(TZ1, TN1);
+            myApp.connectTZtoTN(TZ1, TN2);
+            myApp.connectTZtoTN(TZ1, TN3);
+            myApp.connectTZtoLS(TZ1, LS1);
+            myApp.connectTZtoLS(TZ1, LS2);
+            myApp.connectLStoLP(LS1, LP1);
+            myApp.connectLStoLP(LS1, LP2);
+            myApp.connectLStoLP(LS2, LP3);
         } catch (Exception e) {
             System.out.println("ERROR: " + e);
         }
@@ -322,64 +370,64 @@ public class AppContextTest {
     }
 
     @Test
-    public void errorTest() {
+    public void errorTest() throws NodeDoesNotExistException, NodeAlreadyExistsException {
         AppContext myApp = new AppContext(runtime, "myGraph");
         // Create Transport Zone
-        Key TZ1 = myApp.createTransportZone("TransportZone0");
+        TransportZone TZ1 = myApp.createTransportZone(UUID.randomUUID(), "TZ1", null);
+        String dangerous = "NotInGraph";
 
-        Key randKey = new Key(UUID.randomUUID());
-        while (myApp.getGraph().getNode(randKey) != null) {
-            randKey = new Key(UUID.randomUUID());
-        }
-        final Key finalRandom = randKey;
-
-        assertThatThrownBy(() -> myApp.getGraph().update(finalRandom, null))
+        assertThatThrownBy(() -> myApp.getGraph().update(dangerous))
                 .isInstanceOf(NodeDoesNotExistException.class);
 
-        assertThatThrownBy(() -> myApp.getGraph().removeNode(finalRandom))
+        assertThatThrownBy(() -> myApp.getGraph().removeNode(dangerous))
                 .isInstanceOf(NodeDoesNotExistException.class);
 
-        assertThatThrownBy(() -> myApp.getGraph().connect(finalRandom, null))
+        assertThatThrownBy(() -> myApp.getGraph().connect(TZ1, dangerous))
                 .isInstanceOf(NodeDoesNotExistException.class);
 
-        assertThatThrownBy(() -> myApp.getGraph().adjacent(finalRandom))
+        assertThatThrownBy(() -> myApp.getGraph().connect(dangerous, TZ1))
                 .isInstanceOf(NodeDoesNotExistException.class);
 
-        assertThatThrownBy(() -> myApp.getGraph().preDFS(finalRandom))
+        assertThatThrownBy(() -> myApp.getGraph().adjacent(dangerous))
                 .isInstanceOf(NodeDoesNotExistException.class);
 
-        assertThatThrownBy(() -> myApp.getGraph().postDFS(finalRandom))
+        assertThatThrownBy(() -> myApp.getGraph().preDFS(dangerous))
                 .isInstanceOf(NodeDoesNotExistException.class);
 
-        assertThatThrownBy(() -> myApp.getGraph().BFS(finalRandom))
+        assertThatThrownBy(() -> myApp.getGraph().postDFS(dangerous))
                 .isInstanceOf(NodeDoesNotExistException.class);
 
-        assertThatThrownBy(() -> myApp.getGraph().addNode(TZ1, null))
+        assertThatThrownBy(() -> myApp.getGraph().BFS(dangerous))
+                .isInstanceOf(NodeDoesNotExistException.class);
+
+        assertThatThrownBy(() -> myApp.getGraph().addNode(TZ1))
                 .isInstanceOf(NodeAlreadyExistsException.class);
     }
 
     @Test
-    public void deepGraphTest() {
+    public void deepGraphTest() throws NodeAlreadyExistsException {
         AppContext myApp = new AppContext(runtime, "deepGraph");
+        myApp.getGraph().clear();
 
-        ArrayList<Key> ids = new ArrayList<>();
+        ArrayList<String> objects = new ArrayList<>();
         for (int i = 0; i < 5000; i++) {
-            ids.add(myApp.createTransportNode("TN" + i));
+            objects.add("hello" + String.valueOf(i));
+            myApp.getGraph().addNode(objects.get(i));
         }
         for (int i = 0; i < 4999; i++) {
             try {
-                myApp.connectTransportNode(ids.get(i), ids.get(i + 1));
+                myApp.getGraph().connect(objects.get(i), objects.get(i+1));
             } catch (Exception e) {
-                System.out.println(e);
+                Assert.fail("Error while connecting objects!");
             }
         }
         try {
-            Iterable<Key> ordered = myApp.getGraph().preDFS(ids.get(0));
-            for (Key item : ordered) {
+            Iterable<Integer> ordered = myApp.getGraph().preDFS(objects.get(0));
+            for (Integer item : ordered) {
                 System.out.println(item);
             }
         } catch (Exception e) {
-            System.out.println(e);
+            Assert.fail("Error while performing preDFS/printing objects!");
         }
     }
 }
