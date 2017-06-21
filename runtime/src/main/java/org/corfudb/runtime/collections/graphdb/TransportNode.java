@@ -1,10 +1,10 @@
 package org.corfudb.runtime.collections.graphdb;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.ToString;
 
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -16,24 +16,11 @@ import java.util.UUID;
  * edited by shriyav
  */
 @Data
+@AllArgsConstructor
 @ToString
-public class TransportNode extends Node {
+public class TransportNode {
+    UUID id;
     Set<UUID> transportZoneIds;
-
-    public TransportNode(UUID uuid, String n) {
-        super(uuid, n);
-        transportZoneIds = new HashSet<>();
-    }
-
-    @Override
-    public void addEdge(Node n) {
-        super.addEdge(n);
-        transportZoneIds.add(n.getID());
-    }
-
-    @Override
-    public void removeEdge(Node n) {
-        super.removeEdge(n);
-        transportZoneIds.remove(n.getID());
-    }
+    String name;
+    Map<String, Object> properties;
 }

@@ -1,11 +1,11 @@
 package org.corfudb.runtime.collections.graphdb;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.ToString;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -17,28 +17,13 @@ import java.util.UUID;
  * edited by shriyav
  */
 @Data
+@AllArgsConstructor
 @ToString
-public class LogicalPort extends Node {
+public class LogicalPort {
+    UUID id;
+    String name;
     UUID logicalSwitchId;
     Attachment attachment;
     List<UUID> profiles;
-
-    public LogicalPort(UUID uuid, String n) {
-        super(uuid, n);
-        logicalSwitchId = null;
-        attachment = null;
-        profiles = new ArrayList<>();
-    }
-
-    @Override
-    public void addEdge(Node n) {
-        super.addEdge(n);
-        logicalSwitchId = n.getID();
-    }
-
-    @Override
-    public void removeEdge(Node n) {
-        super.removeEdge(n);
-        logicalSwitchId = null;
-    }
+    Map<String, Object> properties;
 }

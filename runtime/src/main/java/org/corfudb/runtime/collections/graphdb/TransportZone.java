@@ -1,9 +1,10 @@
 package org.corfudb.runtime.collections.graphdb;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.ToString;
 
-import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -15,9 +16,10 @@ import java.util.UUID;
  * edited by shriyav
  */
 @Data
+@AllArgsConstructor
 @ToString
-public class TransportZone extends Node {
-    public TransportZone(UUID uuid, String n) {
-        super(uuid, n);
-    }
+public class TransportZone {
+    UUID id;
+    String name;
+    Map<String, String> properties;
 }

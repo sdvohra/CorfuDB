@@ -6,14 +6,14 @@ import org.corfudb.runtime.collections.SMRMap;
 import java.util.*;
 
 /**
- * Implements GraphInterface. Uses adjacency lists to represent
+ * Implements Graph. Uses adjacency lists to represent
  * an undirected graph of Nodes.
  *
  * @author shriyav
  */
 
-public class GraphDB {
-    private Map<UUID, Node> nodes;
+public class GraphDB implements Graph {
+    private Map<Integer, Node> nodes;
     CorfuRuntime rt;
 
     public GraphDB(CorfuRuntime runtime, String name) {
@@ -30,124 +30,120 @@ public class GraphDB {
         return "This graph has " + getNumNodes() + " nodes.";
     }
 
-    public Map<UUID, Node> getNodes() { return nodes; }
+    public Map<Integer, Node> getNodes() { return nodes; }
 
-    public Node getNode(UUID id) { return nodes.get(id); }
-
-    public void addNode(UUID uuid, Node n) throws NodeAlreadyExistsException {
+    public Integer addNode(Object obj) throws NodeAlreadyExistsException {
         // Error Handling
-        if (getNode(uuid) != null) {
+        Node objNode = new Node(obj);
+        if (getNode(objNode.getID()) != null) {
             throw new NodeAlreadyExistsException();
         }
-        nodes.put(uuid, n);
+
+        nodes.put(objNode.getID(), objNode);
+        return objNode.getID();
     }
 
-    public void update(UUID uuid, Node n) throws NodeDoesNotExistException {
+    public Node getNode(Integer id) { return nodes.get(id); }
+
+    public void update(Object obj) throws NodeDoesNotExistException {
         // Error Handling
-        if (getNode(uuid) == null) {
+        Node objNode = new Node(obj);
+        if (getNode(objNode.getID()) == null) {
             throw new NodeDoesNotExistException();
         }
 
-        nodes.put(uuid, n);
+        nodes.put(objNode.getID(), objNode);
     }
 
-    public void removeNode(UUID uuid) throws NodeDoesNotExistException {
+    public void removeNode(Object obj) throws NodeDoesNotExistException {
+        Integer objID = obj.hashCode();
         // Error Handling
-        if (getNode(uuid) == null) {
+        if (getNode(objID) == null) {
             throw new NodeDoesNotExistException();
         }
 
-        for (UUID neighbor : adjacent(uuid)) {
-            getNode(neighbor).removeEdge(nodes.get(uuid));
+        for (Integer neighbor : adjacent(obj)) {
+            getNode(neighbor).removeEdge(getNode(objID));
         }
-        nodes.remove(uuid);
+        nodes.remove(objID);
     }
 
     public int getNumNodes() {
         return nodes.size();
     }
 
-    public void connect(Node from, Node to) throws NodeDoesNotExistException {
+    public void connect(Object from, Object to) throws NodeDoesNotExistException {
+        Node fromNode = getNode(from.hashCode());
+        Node toNode = getNode(to.hashCode());
         // Error Handling
-        if (getNode(from.getID()) == null || getNode(to.getID()) == null) {
+        if (getNode(fromNode.getID()) == null || getNode(toNode.getID()) == null) {
             throw new NodeDoesNotExistException();
         }
-        from.addEdge(to);
+        fromNode.addEdge(toNode);
+        nodes.put(fromNode.getID(), fromNode);
+        nodes.put(toNode.getID(), toNode);
     }
 
-    public void connect(UUID from, UUID to) throws NodeDoesNotExistException {
-        // Error Handling
-        if (getNode(from) == null || getNode(to) == null) {
-            throw new NodeDoesNotExistException();
-        }
-        Node f = getNode(from);
-        Node t = getNode(to);
-        connect(f, t);
-    }
-
-    public void disconnect(Node from, Node to) throws NodeDoesNotExistException, EdgeDoesNotExistException {
+    public void disconnect(Object from, Object to) throws NodeDoesNotExistException,
+            EdgeDoesNotExistException {
+        Node fromNode = getNode(from.hashCode());
+        Node toNode = getNode(to.hashCode());
         // Error Handling
         if (from == null || to == null) {
             throw new NodeDoesNotExistException();
         }
-        if (!from.getChildren().contains(to) || !to.getParents().contains(from)) {
+        if (!fromNode.getChildren().contains(toNode) || !toNode.getParents().contains(fromNode)) {
             throw new EdgeDoesNotExistException();
         }
-        from.removeEdge(to);
+        fromNode.removeEdge(toNode);
+        nodes.put(fromNode.getID(), fromNode);
+        nodes.put(toNode.getID(), toNode);
     }
 
-    public void disconnect(UUID from, UUID to) throws NodeDoesNotExistException, EdgeDoesNotExistException {
-        // Error Handling
-        if (getNode(from) == null || getNode(to) == null) {
-            throw new NodeDoesNotExistException();
-        }
-        if (!getNode(from).getChildren().contains(to) || !getNode(to).getParents().contains(from)) {
-            throw new EdgeDoesNotExistException();
-        }
-        Node f = getNode(from);
-        Node t = getNode(to);
-        disconnect(f, t);
-    }
-
-    /** Returns an iterable of nodes of all nodes adjacent to v. */
-    public Iterable<UUID> adjacent(UUID v) throws NodeDoesNotExistException {
-        // Error Handling
-        if (getNode(v) == null) {
-            throw new NodeDoesNotExistException();
-        }
-
-        ArrayList<UUID> edgeList = new ArrayList<>();
-        edgeList.addAll(getNode(v).getParents());
-        edgeList.addAll(getNode(v).getChildren());
-        return edgeList;
-    }
-
-    /** Clear entire graphdb: remove all nodes/edges. */
+    @Override
     public void clear() {
         nodes.clear();
     }
 
-    public ArrayList<UUID> preDFS(UUID first) throws NodeDoesNotExistException {
+    @Override
+    public Iterable<Integer> adjacent(Object obj) throws NodeDoesNotExistException {
+        Integer objID = obj.hashCode();
+
         // Error Handling
-        if (getNode(first) == null) {
+        if (getNode(objID) == null) {
             throw new NodeDoesNotExistException();
         }
 
-        ArrayList<UUID> returnVal = new ArrayList<>();
+        ArrayList<Integer> edgeList = new ArrayList<>();
+        edgeList.addAll(getNode(objID).getParents());
+        edgeList.addAll(getNode(objID).getChildren());
+        return edgeList;
+    }
 
-        Stack<UUID> stack = new Stack();
-        stack.add(first);
+    @Override
+    public Iterable<Integer> preDFS(Object obj) throws NodeDoesNotExistException {
+        Integer firstID = obj.hashCode();
 
-        HashSet<UUID> visited = new HashSet<>();
-        visited.add(first);
+        // Error Handling
+        if (getNode(firstID) == null) {
+            throw new NodeDoesNotExistException();
+        }
+
+        ArrayList<Integer> returnVal = new ArrayList<>();
+
+        Stack<Integer> stack = new Stack();
+        stack.add(firstID);
+
+        HashSet<Integer> visited = new HashSet<>();
+        visited.add(firstID);
 
         while (!stack.isEmpty()) {
-            UUID element = stack.pop();
+            Integer element = stack.pop();
             returnVal.add(element);
 
-            ArrayList<UUID> neighbors = nodes.get(element).getChildren();
+            ArrayList<Integer> neighbors = getNode(element).getChildren();
             for (int i = neighbors.size() - 1; i >= 0; i--) {
-                UUID neighbor = neighbors.get(i);
+                Integer neighbor = neighbors.get(i);
                 if (neighbor != null && !visited.contains(neighbor)) {
                     stack.add(neighbor);
                     visited.add(neighbor);
@@ -157,26 +153,29 @@ public class GraphDB {
         return returnVal;
     }
 
-    public ArrayList<UUID> postDFS(UUID first) throws NodeDoesNotExistException {
+    @Override
+    public Iterable<Integer> postDFS(Object obj) throws NodeDoesNotExistException {
+        Integer firstID = obj.hashCode();
+
         // Error Handling
-        if (getNode(first) == null) {
+        if (getNode(firstID) == null) {
             throw new NodeDoesNotExistException();
         }
 
-        ArrayList<UUID> returnVal = new ArrayList<>();
+        ArrayList<Integer> returnVal = new ArrayList<>();
 
-        Stack<UUID> stack = new Stack();
-        stack.add(first);
+        Stack<Integer> stack = new Stack();
+        stack.add(firstID);
 
-        HashSet<UUID> visited = new HashSet<>();
-        visited.add(first);
+        HashSet<Integer> visited = new HashSet<>();
+        visited.add(firstID);
 
         while (!stack.isEmpty()) {
-            UUID element = stack.pop();
+            Integer element = stack.pop();
             returnVal.add(0, element);
 
-            ArrayList<UUID> neighbors = nodes.get(element).getChildren();
-            for (UUID neighbor : neighbors) {
+            ArrayList<Integer> neighbors = getNode(element).getChildren();
+            for (Integer neighbor : neighbors) {
                 if (neighbor != null && !visited.contains(neighbor)) {
                     stack.add(neighbor);
                     visited.add(neighbor);
@@ -186,20 +185,23 @@ public class GraphDB {
         return returnVal;
     }
 
-    public ArrayList<UUID> BFS(UUID first) throws NodeDoesNotExistException {
+    @Override
+    public Iterable<Integer> BFS(Object obj) throws NodeDoesNotExistException {
+        Integer firstID = obj.hashCode();
+
         // Error Handling
-        if (getNode(first) == null) {
+        if (getNode(firstID) == null) {
             throw new NodeDoesNotExistException();
         }
 
-        ArrayList<UUID> ordered = new ArrayList<>();
-        ArrayList<UUID> fringe = new ArrayList<>();
-        fringe.add(first);
+        ArrayList<Integer> ordered = new ArrayList<>();
+        ArrayList<Integer> fringe = new ArrayList<>();
+        fringe.add(firstID);
         while (fringe.size() != 0) {
-            UUID curr = fringe.remove(0);
+            Integer curr = fringe.remove(0);
             if (!ordered.contains(curr)) {
                 ordered.add(curr);
-                for (UUID neighbor : nodes.get(curr).getChildren()) {
+                for (Integer neighbor : getNode(curr).getChildren()) {
                     fringe.add(neighbor);
                 }
             }

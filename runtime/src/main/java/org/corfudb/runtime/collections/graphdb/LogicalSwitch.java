@@ -1,11 +1,12 @@
 package org.corfudb.runtime.collections.graphdb;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.ToString;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -17,28 +18,14 @@ import java.util.UUID;
  * edited by shriyav
  */
 @Data
+@AllArgsConstructor
 @ToString
-public class LogicalSwitch extends Node {
+public class LogicalSwitch {
+    UUID id;
+    String name;
     // Transport zone which is the diameter of the network. A switch belongs to
     // one transport zone
     UUID tzId;
     List<UUID> profiles;
-
-    public LogicalSwitch(UUID uuid, String n) {
-        super(uuid, n);
-        tzId = null;
-        profiles = new ArrayList<>();
-    }
-
-    @Override
-    public void addEdge(Node n) {
-        super.addEdge(n);
-        tzId = n.getID();
-    }
-
-    @Override
-    public void removeEdge(Node n) {
-        super.removeEdge(n);
-        tzId = null;
-    }
+    Map<String, Object> properties;
 }

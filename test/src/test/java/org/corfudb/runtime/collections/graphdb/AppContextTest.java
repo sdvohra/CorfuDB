@@ -63,18 +63,18 @@ public class AppContextTest {
         AppContext myApp = new AppContext(runtime, "myGraph");
 
         // Create Transport Zone
-        UUID TZ1 = myApp.createTransportZone("TransportZone0");
+        Key TZ1 = myApp.createTransportZone("TransportZone0");
         // Create Transport Nodes
-        UUID TN1 = myApp.createTransportNode("TransportNode1.1");
-        UUID TN2 = myApp.createTransportNode("TransportNode1.2");
-        UUID TN3 = myApp.createTransportNode("TransportNode2.1");
+        Key TN1 = myApp.createTransportNode("TransportNode1.1");
+        Key TN2 = myApp.createTransportNode("TransportNode1.2");
+        Key TN3 = myApp.createTransportNode("TransportNode2.1");
         // Create Logical Switches
-        UUID LS1 = myApp.createLogicalSwitch("LogicalSwitch3.1");
-        UUID LS2 = myApp.createLogicalSwitch("LogicalSwitch3.2");
+        Key LS1 = myApp.createLogicalSwitch("LogicalSwitch3.1");
+        Key LS2 = myApp.createLogicalSwitch("LogicalSwitch3.2");
         // Create Logical Ports
-        UUID LP1 = myApp.createLogicalPort("LogicalPort0.2");
-        UUID LP2 = myApp.createLogicalPort("LogicalPort2.2");
-        UUID LP3 = myApp.createLogicalPort("LogicalPort1.2");
+        Key LP1 = myApp.createLogicalPort("LogicalPort0.2");
+        Key LP2 = myApp.createLogicalPort("LogicalPort2.2");
+        Key LP3 = myApp.createLogicalPort("LogicalPort1.2");
 
         // Connect the elements
         try {
@@ -101,8 +101,8 @@ public class AppContextTest {
         expected.add("LogicalSwitch3.1");
         expected.add("LogicalSwitch3.2");
         try {
-            Iterable<UUID> adj = myApp.getGraph().adjacent(TZ1);
-            for (UUID friend : adj) {
+            Iterable<Key> adj = myApp.getGraph().adjacent(TZ1);
+            for (Key friend : adj) {
                 actual.add(myApp.getGraph().getNodes().get(friend).getName());
             } // expect: TN1.1, TN1.2, TN2.1, LS3.1, LS3.2
         } catch (Exception e) {
@@ -116,18 +116,18 @@ public class AppContextTest {
         AppContext myApp = new AppContext(runtime, "myGraph");
 
         // Create Transport Zone
-        UUID TZ1 = myApp.createTransportZone("TransportZone0");
+        Key TZ1 = myApp.createTransportZone("TransportZone0");
         // Create Transport Nodes
-        UUID TN1 = myApp.createTransportNode("TransportNode1.1");
-        UUID TN2 = myApp.createTransportNode("TransportNode1.2");
-        UUID TN3 = myApp.createTransportNode("TransportNode2.1");
+        Key TN1 = myApp.createTransportNode("TransportNode1.1");
+        Key TN2 = myApp.createTransportNode("TransportNode1.2");
+        Key TN3 = myApp.createTransportNode("TransportNode2.1");
         // Create Logical Switches
-        UUID LS1 = myApp.createLogicalSwitch("LogicalSwitch3.1");
-        UUID LS2 = myApp.createLogicalSwitch("LogicalSwitch3.2");
+        Key LS1 = myApp.createLogicalSwitch("LogicalSwitch3.1");
+        Key LS2 = myApp.createLogicalSwitch("LogicalSwitch3.2");
         // Create Logical Ports
-        UUID LP1 = myApp.createLogicalPort("LogicalPort0.2");
-        UUID LP2 = myApp.createLogicalPort("LogicalPort2.2");
-        UUID LP3 = myApp.createLogicalPort("LogicalPort1.2");
+        Key LP1 = myApp.createLogicalPort("LogicalPort0.2");
+        Key LP2 = myApp.createLogicalPort("LogicalPort2.2");
+        Key LP3 = myApp.createLogicalPort("LogicalPort1.2");
 
         // Connect the elements
         try {
@@ -150,7 +150,7 @@ public class AppContextTest {
         ArrayList<String> expected = new ArrayList<>();
 
         try {
-            ArrayList<UUID> pre = myApp.getGraph().preDFS(TZ1);
+            Iterable<Key> pre = myApp.getGraph().preDFS(TZ1);
             expected.add("TransportZone0");
             expected.add("TransportNode1.1");
             expected.add("TransportNode1.2");
@@ -160,7 +160,7 @@ public class AppContextTest {
             expected.add("LogicalPort2.2");
             expected.add("LogicalSwitch3.2");
             expected.add("LogicalPort1.2");
-            for (UUID item : pre) {
+            for (Key item : pre) {
                 actual.add(myApp.getGraph().getNodes().get(item).getName());
             } // expect: TZ0, TN1.1, TN1.2, TN2.1, LS3.1, LP0.2, LP2.2, LS3.2, LP1.2
         } catch (Exception e) {
@@ -174,18 +174,18 @@ public class AppContextTest {
         AppContext myApp = new AppContext(runtime, "myGraph");
 
         // Create Transport Zone
-        UUID TZ1 = myApp.createTransportZone("TransportZone0");
+        Key TZ1 = myApp.createTransportZone("TransportZone0");
         // Create Transport Nodes
-        UUID TN1 = myApp.createTransportNode("TransportNode1.1");
-        UUID TN2 = myApp.createTransportNode("TransportNode1.2");
-        UUID TN3 = myApp.createTransportNode("TransportNode2.1");
+        Key TN1 = myApp.createTransportNode("TransportNode1.1");
+        Key TN2 = myApp.createTransportNode("TransportNode1.2");
+        Key TN3 = myApp.createTransportNode("TransportNode2.1");
         // Create Logical Switches
-        UUID LS1 = myApp.createLogicalSwitch("LogicalSwitch3.1");
-        UUID LS2 = myApp.createLogicalSwitch("LogicalSwitch3.2");
+        Key LS1 = myApp.createLogicalSwitch("LogicalSwitch3.1");
+        Key LS2 = myApp.createLogicalSwitch("LogicalSwitch3.2");
         // Create Logical Ports
-        UUID LP1 = myApp.createLogicalPort("LogicalPort0.2");
-        UUID LP2 = myApp.createLogicalPort("LogicalPort2.2");
-        UUID LP3 = myApp.createLogicalPort("LogicalPort1.2");
+        Key LP1 = myApp.createLogicalPort("LogicalPort0.2");
+        Key LP2 = myApp.createLogicalPort("LogicalPort2.2");
+        Key LP3 = myApp.createLogicalPort("LogicalPort1.2");
 
         // Connect the elements
         try {
@@ -208,7 +208,7 @@ public class AppContextTest {
         ArrayList<String> expected = new ArrayList<>();
 
         try {
-            ArrayList<UUID> post = myApp.getGraph().postDFS(TZ1);
+            Iterable<Key> post = myApp.getGraph().postDFS(TZ1);
             expected.add("TransportNode1.1");
             expected.add("TransportNode1.2");
             expected.add("TransportNode2.1");
@@ -218,7 +218,7 @@ public class AppContextTest {
             expected.add("LogicalPort1.2");
             expected.add("LogicalSwitch3.2");
             expected.add("TransportZone0");
-            for (UUID item : post) {
+            for (Key item : post) {
                 actual.add(myApp.getGraph().getNodes().get(item).getName());
             } // expect: TN1.1, TN1.2, TN2.1, LP0.2, LP2.2, LS3.1, LP1.2, LS3.2, TZ0
         } catch (Exception e) {
@@ -232,18 +232,18 @@ public class AppContextTest {
         AppContext myApp = new AppContext(runtime, "myGraph");
 
         // Create Transport Zone
-        UUID TZ1 = myApp.createTransportZone("TransportZone0");
+        Key TZ1 = myApp.createTransportZone("TransportZone0");
         // Create Transport Nodes
-        UUID TN1 = myApp.createTransportNode("TransportNode1.1");
-        UUID TN2 = myApp.createTransportNode("TransportNode1.2");
-        UUID TN3 = myApp.createTransportNode("TransportNode2.1");
+        Key TN1 = myApp.createTransportNode("TransportNode1.1");
+        Key TN2 = myApp.createTransportNode("TransportNode1.2");
+        Key TN3 = myApp.createTransportNode("TransportNode2.1");
         // Create Logical Switches
-        UUID LS1 = myApp.createLogicalSwitch("LogicalSwitch3.1");
-        UUID LS2 = myApp.createLogicalSwitch("LogicalSwitch3.2");
+        Key LS1 = myApp.createLogicalSwitch("LogicalSwitch3.1");
+        Key LS2 = myApp.createLogicalSwitch("LogicalSwitch3.2");
         // Create Logical Ports
-        UUID LP1 = myApp.createLogicalPort("LogicalPort0.2");
-        UUID LP2 = myApp.createLogicalPort("LogicalPort2.2");
-        UUID LP3 = myApp.createLogicalPort("LogicalPort1.2");
+        Key LP1 = myApp.createLogicalPort("LogicalPort0.2");
+        Key LP2 = myApp.createLogicalPort("LogicalPort2.2");
+        Key LP3 = myApp.createLogicalPort("LogicalPort1.2");
 
         // Connect the elements
         try {
@@ -266,7 +266,7 @@ public class AppContextTest {
         ArrayList<String> expected = new ArrayList<>();
 
         try {
-            ArrayList<UUID> bfs = myApp.getGraph().BFS(TZ1);
+            Iterable<Key> bfs = myApp.getGraph().BFS(TZ1);
             expected.add("TransportZone0");
             expected.add("TransportNode1.1");
             expected.add("TransportNode1.2");
@@ -276,7 +276,7 @@ public class AppContextTest {
             expected.add("LogicalPort0.2");
             expected.add("LogicalPort2.2");
             expected.add("LogicalPort1.2");
-            for (UUID item : bfs) {
+            for (Key item : bfs) {
                 actual.add(myApp.getGraph().getNodes().get(item).getName());
             } // expect: TZ0, TN1.1, TN1.2, TN2.1, LS3.1, LS3.2, LP0.2, LP2.2, LP1.2
         } catch (Exception e) {
@@ -290,18 +290,18 @@ public class AppContextTest {
         AppContext myApp = new AppContext(runtime, "myGraph");
 
         // Create Transport Zone
-        UUID TZ1 = myApp.createTransportZone("TransportZone0");
+        Key TZ1 = myApp.createTransportZone("TransportZone0");
         // Create Transport Nodes
-        UUID TN1 = myApp.createTransportNode("TransportNode1.1");
-        UUID TN2 = myApp.createTransportNode("TransportNode1.2");
-        UUID TN3 = myApp.createTransportNode("TransportNode2.1");
+        Key TN1 = myApp.createTransportNode("TransportNode1.1");
+        Key TN2 = myApp.createTransportNode("TransportNode1.2");
+        Key TN3 = myApp.createTransportNode("TransportNode2.1");
         // Create Logical Switches
-        UUID LS1 = myApp.createLogicalSwitch("LogicalSwitch3.1");
-        UUID LS2 = myApp.createLogicalSwitch("LogicalSwitch3.2");
+        Key LS1 = myApp.createLogicalSwitch("LogicalSwitch3.1");
+        Key LS2 = myApp.createLogicalSwitch("LogicalSwitch3.2");
         // Create Logical Ports
-        UUID LP1 = myApp.createLogicalPort("LogicalPort0.2");
-        UUID LP2 = myApp.createLogicalPort("LogicalPort2.2");
-        UUID LP3 = myApp.createLogicalPort("LogicalPort1.2");
+        Key LP1 = myApp.createLogicalPort("LogicalPort0.2");
+        Key LP2 = myApp.createLogicalPort("LogicalPort2.2");
+        Key LP3 = myApp.createLogicalPort("LogicalPort1.2");
 
         // Connect the elements
         try {
@@ -325,13 +325,13 @@ public class AppContextTest {
     public void errorTest() {
         AppContext myApp = new AppContext(runtime, "myGraph");
         // Create Transport Zone
-        UUID TZ1 = myApp.createTransportZone("TransportZone0");
+        Key TZ1 = myApp.createTransportZone("TransportZone0");
 
-        UUID random = UUID.randomUUID();
-        while (myApp.getGraph().getNode(random) != null) {
-            random = UUID.randomUUID();
+        Key randKey = new Key(UUID.randomUUID());
+        while (myApp.getGraph().getNode(randKey) != null) {
+            randKey = new Key(UUID.randomUUID());
         }
-        final UUID finalRandom = random;
+        final Key finalRandom = randKey;
 
         assertThatThrownBy(() -> myApp.getGraph().update(finalRandom, null))
                 .isInstanceOf(NodeDoesNotExistException.class);
@@ -362,11 +362,11 @@ public class AppContextTest {
     public void deepGraphTest() {
         AppContext myApp = new AppContext(runtime, "deepGraph");
 
-        ArrayList<UUID> ids = new ArrayList<>();
-        for (int i = 0; i < 10000; i++) {
+        ArrayList<Key> ids = new ArrayList<>();
+        for (int i = 0; i < 5000; i++) {
             ids.add(myApp.createTransportNode("TN" + i));
         }
-        for (int i = 0; i < 9999; i++) {
+        for (int i = 0; i < 4999; i++) {
             try {
                 myApp.connectTransportNode(ids.get(i), ids.get(i + 1));
             } catch (Exception e) {
@@ -374,8 +374,8 @@ public class AppContextTest {
             }
         }
         try {
-            ArrayList<UUID> ordered = myApp.getGraph().preDFS(ids.get(0));
-            for (UUID item : ordered) {
+            Iterable<Key> ordered = myApp.getGraph().preDFS(ids.get(0));
+            for (Key item : ordered) {
                 System.out.println(item);
             }
         } catch (Exception e) {
