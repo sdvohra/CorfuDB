@@ -6,7 +6,6 @@ import org.docopt.Docopt;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import sun.rmi.transport.Transport;
 
 import static org.assertj.core.api.Assertions.*;
 
