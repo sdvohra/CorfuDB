@@ -66,11 +66,11 @@ public class AppContext extends AbstractViewTest {
         graph.connect(ls, lp);
     }
 
-    public ArrayList<Integer> getParents(Object obj) {
-        return graph.getNode(obj).getParents();
+    public ArrayList<Integer> getInward(Object obj) {
+        return graph.getNode(obj).getInward();
     }
 
-    public ArrayList<Integer> getChildren(Object obj) {
-        return graph.getNode(obj).getParents();
+    public ArrayList<Integer> getOutward(Object obj) {
+        return graph.getNode(obj).getInward();
     }
 }

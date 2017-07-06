@@ -9,14 +9,14 @@ import java.util.ArrayList;
  */
 
 public class Node {
-    Object value;
-    ArrayList<Integer> parents;
-    ArrayList<Integer> children;
+    private Object value;
+    ArrayList<Integer> inward;
+    ArrayList<Integer> outward;
 
     public Node(Object val) {
         value = val;
-        parents = new ArrayList<>();
-        children = new ArrayList<>();
+        inward = new ArrayList<>();
+        outward = new ArrayList<>();
     }
 
     public Integer getID() { return value.hashCode(); }
@@ -25,21 +25,21 @@ public class Node {
         return value;
     }
 
-    public ArrayList<Integer> getParents() {
-        return parents;
+    public ArrayList<Integer> getInward() {
+        return inward;
     }
 
-    public ArrayList<Integer> getChildren() {
-        return children;
+    public ArrayList<Integer> getOutward() {
+        return outward;
     }
 
     public void addEdge(Node n) {
-        this.children.add(n.getID());
-        n.getParents().add(this.getID());
+        this.outward.add(n.getID());
+        n.getInward().add(this.getID());
     }
 
     public void removeEdge(Node n) {
-        this.children.remove(n.getID());
-        n.getParents().remove(this.getID());
+        this.outward.remove(n.getID());
+        n.getInward().remove(this.getID());
     }
 }

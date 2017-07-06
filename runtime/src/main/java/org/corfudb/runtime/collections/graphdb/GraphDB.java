@@ -76,12 +76,17 @@ public class GraphDB implements Graph {
         return nodes.size();
     }
 
-    public void connect(Object from, Object to) throws NodeDoesNotExistException {
+    public void connect(Object from, Object to) throws NodeDoesNotExistException,
+            EdgeAlreadyExistsException {
         Node fromNode = getNode(from.hashCode());
         Node toNode = getNode(to.hashCode());
         // Error Handling
         if (fromNode == null || toNode == null) {
             throw new NodeDoesNotExistException();
+        }
+        if (fromNode.getOutward().contains(toNode.getID()) &&
+                toNode.getInward().contains(fromNode.getID())) {
+            throw new EdgeAlreadyExistsException();
         }
         fromNode.addEdge(toNode);
         nodes.put(fromNode.getID(), fromNode);
@@ -96,7 +101,7 @@ public class GraphDB implements Graph {
         if (fromNode == null || toNode == null) {
             throw new NodeDoesNotExistException();
         }
-        if (!fromNode.getChildren().contains(toNode) || !toNode.getParents().contains(fromNode)) {
+        if (!fromNode.getOutward().contains(toNode) || !toNode.getInward().contains(fromNode)) {
             throw new EdgeDoesNotExistException();
         }
         fromNode.removeEdge(toNode);
@@ -119,8 +124,8 @@ public class GraphDB implements Graph {
         }
 
         ArrayList<Integer> edgeList = new ArrayList<>();
-        edgeList.addAll(getNode(objID).getParents());
-        edgeList.addAll(getNode(objID).getChildren());
+        edgeList.addAll(getNode(objID).getInward());
+        edgeList.addAll(getNode(objID).getOutward());
         return edgeList;
     }
 
@@ -145,7 +150,7 @@ public class GraphDB implements Graph {
             Integer element = stack.pop();
             returnVal.add(element);
 
-            ArrayList<Integer> neighbors = getNode(element).getChildren();
+            ArrayList<Integer> neighbors = getNode(element).getOutward();
             for (int i = neighbors.size() - 1; i >= 0; i--) {
                 Integer neighbor = neighbors.get(i);
                 if (neighbor != null && !visited.contains(neighbor)) {
@@ -178,7 +183,7 @@ public class GraphDB implements Graph {
             Integer element = stack.pop();
             returnVal.add(0, element);
 
-            ArrayList<Integer> neighbors = getNode(element).getChildren();
+            ArrayList<Integer> neighbors = getNode(element).getOutward();
             for (Integer neighbor : neighbors) {
                 if (neighbor != null && !visited.contains(neighbor)) {
                     stack.add(neighbor);
@@ -205,7 +210,7 @@ public class GraphDB implements Graph {
             Integer curr = fringe.remove(0);
             if (!ordered.contains(curr)) {
                 ordered.add(curr);
-                for (Integer neighbor : getNode(curr).getChildren()) {
+                for (Integer neighbor : getNode(curr).getOutward()) {
                     fringe.add(neighbor);
                 }
             }
