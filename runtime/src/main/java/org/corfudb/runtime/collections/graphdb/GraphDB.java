@@ -42,12 +42,7 @@ public class GraphDB implements Graph {
         nodes.put(objNode.getID(), objNode);
     }
 
-    private Node getNode(Integer id) { return nodes.get(id); }
-
-    public Node getNode(Object obj) {
-        Integer objID = obj.hashCode();
-        return getNode(objID);
-    }
+    public Node getNode(Integer id) { return nodes.get(id); }
 
     public void update(Object obj) throws NodeDoesNotExistException {
         // Error Handling
@@ -60,15 +55,18 @@ public class GraphDB implements Graph {
     }
 
     public void removeNode(Object obj) throws NodeDoesNotExistException {
-        Integer objID = obj.hashCode();
+        Node objNode = new Node(obj);
+        Integer objID = objNode.getID();
         // Error Handling
         if (getNode(objID) == null) {
             throw new NodeDoesNotExistException();
         }
 
         for (Object neighbor : adjacent(obj)) {
-            getNode(neighbor).removeEdge(getNode(objID));
-            nodes.put(neighbor.hashCode(), getNode(neighbor)); // for persistence
+            Node neighborNode = new Node(neighbor);
+            Integer neighborID = neighborNode.getID();
+            getNode(neighborID).removeEdge(getNode(objID));
+            nodes.put(neighborID, getNode(neighborID)); // for persistence
         }
         nodes.remove(objID);
     }
@@ -79,8 +77,10 @@ public class GraphDB implements Graph {
 
     public void connect(Object from, Object to) throws NodeDoesNotExistException,
             EdgeAlreadyExistsException {
-        Node fromNode = getNode(from.hashCode());
-        Node toNode = getNode(to.hashCode());
+        Integer fromNodeID = (new Node(from)).getID();
+        Integer toNodeID = (new Node(to)).getID();
+        Node fromNode = getNode(fromNodeID);
+        Node toNode = getNode(toNodeID);
         // Error Handling
         if (fromNode == null || toNode == null) {
             throw new NodeDoesNotExistException();
@@ -90,14 +90,16 @@ public class GraphDB implements Graph {
             throw new EdgeAlreadyExistsException();
         }
         fromNode.addEdge(toNode);
-        nodes.put(fromNode.getID(), fromNode);
-        nodes.put(toNode.getID(), toNode);
+        nodes.put(fromNodeID, fromNode);
+        nodes.put(toNodeID, toNode);
     }
 
     public void disconnect(Object from, Object to) throws NodeDoesNotExistException,
             EdgeDoesNotExistException {
-        Node fromNode = getNode(from.hashCode());
-        Node toNode = getNode(to.hashCode());
+        Integer fromNodeID = (new Node(from)).getID();
+        Integer toNodeID = (new Node(to)).getID();
+        Node fromNode = getNode(fromNodeID);
+        Node toNode = getNode(toNodeID);
         // Error Handling
         if (fromNode == null || toNode == null) {
             throw new NodeDoesNotExistException();
@@ -106,8 +108,8 @@ public class GraphDB implements Graph {
             throw new EdgeDoesNotExistException();
         }
         fromNode.removeEdge(toNode);
-        nodes.put(fromNode.getID(), fromNode);
-        nodes.put(toNode.getID(), toNode);
+        nodes.put(fromNodeID, fromNode);
+        nodes.put(toNodeID, toNode);
     }
 
     @Override
@@ -117,7 +119,8 @@ public class GraphDB implements Graph {
 
     @Override
     public Iterable<Object> adjacent(Object obj) throws NodeDoesNotExistException {
-        Integer objID = obj.hashCode();
+        Node objNode = new Node(obj);
+        Integer objID = objNode.getID();
 
         // Error Handling
         if (getNode(objID) == null) {
@@ -136,7 +139,8 @@ public class GraphDB implements Graph {
 
     @Override
     public Iterable<Object> preDFS(Object obj) throws NodeDoesNotExistException {
-        Integer firstID = obj.hashCode();
+        Node objNode = new Node(obj);
+        Integer firstID = objNode.getID();
 
         // Error Handling
         if (getNode(firstID) == null) {
@@ -170,7 +174,8 @@ public class GraphDB implements Graph {
 
     @Override
     public Iterable<Object> postDFS(Object obj) throws NodeDoesNotExistException {
-        Integer firstID = obj.hashCode();
+        Node objNode = new Node(obj);
+        Integer firstID = objNode.getID();
 
         // Error Handling
         if (getNode(firstID) == null) {
@@ -204,7 +209,8 @@ public class GraphDB implements Graph {
 
     @Override
     public Iterable<Object> BFS(Object obj) throws NodeDoesNotExistException {
-        Integer firstID = obj.hashCode();
+        Node objNode = new Node(obj);
+        Integer firstID = objNode.getID();
 
         // Error Handling
         if (getNode(firstID) == null) {

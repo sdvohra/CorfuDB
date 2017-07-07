@@ -100,9 +100,6 @@ public class AppContextTest {
             System.out.println("ERROR: " + e);
         }
 
-        // Run graphdb methods!
-        System.out.println(myApp.getGraph()); // should change each time it's run (b/c persistent)
-
         ArrayList<Object> actual = new ArrayList<>();
         ArrayList<Object> expected = new ArrayList<>();
         expected.add(TN1);
@@ -111,14 +108,13 @@ public class AppContextTest {
         expected.add(LS1);
         expected.add(LS2);
         try {
-            Iterable<Integer> adj = myApp.getGraph().adjacent(TZ1);
-            for (Integer friend : adj) {
-                actual.add(myApp.getGraph().getNode(friend).getValue());
-            } // expect: TN1.1, TN1.2, TN2.1, LS3.1, LS3.2
+            Iterable<Object> adj = myApp.getGraph().adjacent(TZ1);
+            for (Object friend : adj) {
+                actual.add(friend);
+            }
         } catch (Exception e) {
             System.out.println("ERROR: " + e);
         }
-        System.out.println(actual);
         Assert.assertEquals(expected, actual);
     }
 
@@ -163,14 +159,11 @@ public class AppContextTest {
             System.out.println("ERROR: " + e);
         }
 
-        // Run graphdb methods!
-        System.out.println(myApp.getGraph()); // should change each time it's run (b/c persistent)
-
         ArrayList<Object> actual = new ArrayList<>();
         ArrayList<Object> expected = new ArrayList<>();
 
         try {
-            Iterable<Integer> pre = myApp.getGraph().preDFS(TZ1);
+            Iterable<Object> pre = myApp.getGraph().preDFS(TZ1);
             expected.add(TZ1);
             expected.add(TN1);
             expected.add(TN2);
@@ -180,9 +173,9 @@ public class AppContextTest {
             expected.add(LP2);
             expected.add(LS2);
             expected.add(LP3);
-            for (Integer item : pre) {
-                actual.add(myApp.getGraph().getNode(item).getValue());
-            } // expect: TZ0, TN1.1, TN1.2, TN2.1, LS3.1, LP0.2, LP2.2, LS3.2, LP1.2
+            for (Object item : pre) {
+                actual.add(item);
+            }
         } catch (Exception e) {
             System.out.println("ERROR: " + e);
         }
@@ -230,14 +223,11 @@ public class AppContextTest {
             System.out.println("ERROR: " + e);
         }
 
-        // Run graphdb methods!
-        System.out.println(myApp.getGraph()); // should change each time it's run (b/c persistent)
-
         ArrayList<Object> actual = new ArrayList<>();
         ArrayList<Object> expected = new ArrayList<>();
 
         try {
-            Iterable<Integer> post = myApp.getGraph().postDFS(TZ1);
+            Iterable<Object> post = myApp.getGraph().postDFS(TZ1);
             expected.add(TN1);
             expected.add(TN2);
             expected.add(TN3);
@@ -247,9 +237,9 @@ public class AppContextTest {
             expected.add(LP3);
             expected.add(LS2);
             expected.add(TZ1);
-            for (Integer item : post) {
-                actual.add(myApp.getGraph().getNode(item).getValue());
-            } // expect: TN1.1, TN1.2, TN2.1, LP0.2, LP2.2, LS3.1, LP1.2, LS3.2, TZ0
+            for (Object item : post) {
+                actual.add(item);
+            }
         } catch (Exception e) {
             System.out.println("ERROR: " + e);
         }
@@ -297,14 +287,11 @@ public class AppContextTest {
             System.out.println("ERROR: " + e);
         }
 
-        // Run graphdb methods!
-        System.out.println(myApp.getGraph()); // should change each time it's run (b/c persistent)
-
         ArrayList<Object> actual = new ArrayList<>();
         ArrayList<Object> expected = new ArrayList<>();
 
         try {
-            Iterable<Integer> bfs = myApp.getGraph().BFS(TZ1);
+            Iterable<Object> bfs = myApp.getGraph().BFS(TZ1);
             expected.add(TZ1);
             expected.add(TN1);
             expected.add(TN2);
@@ -314,13 +301,32 @@ public class AppContextTest {
             expected.add(LP1);
             expected.add(LP2);
             expected.add(LP3);
-            for (Integer item : bfs) {
-                actual.add(myApp.getGraph().getNode(item).getValue());
+            for (Object item : bfs) {
+                actual.add(item);
             } // expect: TN1.1, TN1.2, TN2.1, LP0.2, LP2.2, LS3.1, LP1.2, LS3.2, TZ0
         } catch (Exception e) {
             System.out.println("ERROR: " + e);
         }
         Assert.assertEquals(expected, actual);
+    }
+
+    @Test
+    public void clearTestIntegers() {
+        AppContext myApp = new AppContext(runtime, "myIntegerGraph");
+
+        // Create the elements
+        try {
+            myApp.getGraph().addNode("Hi");
+            myApp.getGraph().addNode("Bonjour");
+            myApp.getGraph().addNode("Namaste");
+            myApp.getGraph().addNode("Hola");
+        } catch (Exception e) {
+            System.out.println("ERROR: " + e);
+        }
+
+        Assert.assertEquals(4, myApp.getGraph().getNumNodes());
+        myApp.getGraph().clear();
+        Assert.assertEquals(0, myApp.getGraph().getNumNodes());
     }
 
     @Test
@@ -364,6 +370,7 @@ public class AppContextTest {
             System.out.println("ERROR: " + e);
         }
 
+        Assert.assertEquals(9, myApp.getGraph().getNumNodes());
         myApp.getGraph().clear();
         Assert.assertEquals(0, myApp.getGraph().getNumNodes());
     }
@@ -421,8 +428,8 @@ public class AppContextTest {
             }
         }
         try {
-            Iterable<Integer> ordered = myApp.getGraph().preDFS(objects.get(0));
-            for (Integer item : ordered) {
+            Iterable<Object> ordered = myApp.getGraph().preDFS(objects.get(0));
+            for (Object item : ordered) {
                 System.out.println(item);
             }
         } catch (Exception e) {

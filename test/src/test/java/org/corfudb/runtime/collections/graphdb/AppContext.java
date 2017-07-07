@@ -65,12 +65,4 @@ public class AppContext extends AbstractViewTest {
     public void connectLStoLP(LogicalSwitch ls, LogicalPort lp) throws Exception {
         graph.connect(ls, lp);
     }
-
-    public ArrayList<Integer> getInward(Object obj) {
-        return graph.getNode(obj).getInward();
-    }
-
-    public ArrayList<Integer> getOutward(Object obj) {
-        return graph.getNode(obj).getInward();
-    }
 }
