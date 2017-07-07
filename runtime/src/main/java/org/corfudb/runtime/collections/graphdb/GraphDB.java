@@ -66,8 +66,9 @@ public class GraphDB implements Graph {
             throw new NodeDoesNotExistException();
         }
 
-        for (Integer neighbor : adjacent(obj)) {
+        for (Object neighbor : adjacent(obj)) {
             getNode(neighbor).removeEdge(getNode(objID));
+            nodes.put(neighbor.hashCode(), getNode(neighbor)); // for persistence
         }
         nodes.remove(objID);
     }
@@ -84,8 +85,8 @@ public class GraphDB implements Graph {
         if (fromNode == null || toNode == null) {
             throw new NodeDoesNotExistException();
         }
-        if (fromNode.getOutward().contains(toNode.getID()) &&
-                toNode.getInward().contains(fromNode.getID())) {
+        if (fromNode.getOutward().contains(toNode) &&
+                toNode.getInward().contains(fromNode)) {
             throw new EdgeAlreadyExistsException();
         }
         fromNode.addEdge(toNode);
@@ -115,7 +116,7 @@ public class GraphDB implements Graph {
     }
 
     @Override
-    public Iterable<Integer> adjacent(Object obj) throws NodeDoesNotExistException {
+    public Iterable<Object> adjacent(Object obj) throws NodeDoesNotExistException {
         Integer objID = obj.hashCode();
 
         // Error Handling
@@ -123,14 +124,18 @@ public class GraphDB implements Graph {
             throw new NodeDoesNotExistException();
         }
 
-        ArrayList<Integer> edgeList = new ArrayList<>();
-        edgeList.addAll(getNode(objID).getInward());
-        edgeList.addAll(getNode(objID).getOutward());
-        return edgeList;
+        ArrayList<Object> adjList = new ArrayList<>();
+        for (Node inwardNode : getNode(objID).getInward()) {
+            adjList.add(inwardNode.getValue());
+        }
+        for (Node outwardNode : getNode(objID).getOutward()) {
+            adjList.add(outwardNode.getValue());
+        }
+        return adjList;
     }
 
     @Override
-    public Iterable<Integer> preDFS(Object obj) throws NodeDoesNotExistException {
+    public Iterable<Object> preDFS(Object obj) throws NodeDoesNotExistException {
         Integer firstID = obj.hashCode();
 
         // Error Handling
@@ -138,24 +143,25 @@ public class GraphDB implements Graph {
             throw new NodeDoesNotExistException();
         }
 
-        ArrayList<Integer> returnVal = new ArrayList<>();
+        ArrayList<Object> returnVal = new ArrayList<>();
 
-        Stack<Integer> stack = new Stack();
+        Stack<Integer> stack = new Stack(); // IDs to visit
         stack.add(firstID);
 
-        HashSet<Integer> visited = new HashSet<>();
+        HashSet<Integer> visited = new HashSet<>(); // IDs visited
         visited.add(firstID);
 
         while (!stack.isEmpty()) {
-            Integer element = stack.pop();
-            returnVal.add(element);
+            Integer elementID = stack.pop();
+            returnVal.add(getNode(elementID).getValue());
 
-            ArrayList<Integer> neighbors = getNode(element).getOutward();
+            ArrayList<Node> neighbors = getNode(elementID).getOutward();
             for (int i = neighbors.size() - 1; i >= 0; i--) {
-                Integer neighbor = neighbors.get(i);
-                if (neighbor != null && !visited.contains(neighbor)) {
-                    stack.add(neighbor);
-                    visited.add(neighbor);
+                Node neighbor = neighbors.get(i);
+                Integer neighborID = neighbor.getID();
+                if (neighbor != null && !visited.contains(neighborID)) {
+                    stack.add(neighborID);
+                    visited.add(neighborID);
                 }
             }
         }
@@ -163,7 +169,7 @@ public class GraphDB implements Graph {
     }
 
     @Override
-    public Iterable<Integer> postDFS(Object obj) throws NodeDoesNotExistException {
+    public Iterable<Object> postDFS(Object obj) throws NodeDoesNotExistException {
         Integer firstID = obj.hashCode();
 
         // Error Handling
@@ -171,23 +177,25 @@ public class GraphDB implements Graph {
             throw new NodeDoesNotExistException();
         }
 
-        ArrayList<Integer> returnVal = new ArrayList<>();
+        ArrayList<Object> returnVal = new ArrayList<>();
 
-        Stack<Integer> stack = new Stack();
+        Stack<Integer> stack = new Stack(); // IDs to visit
         stack.add(firstID);
 
-        HashSet<Integer> visited = new HashSet<>();
+        HashSet<Integer> visited = new HashSet<>(); // IDs visited
         visited.add(firstID);
 
         while (!stack.isEmpty()) {
-            Integer element = stack.pop();
-            returnVal.add(0, element);
+            Integer elementID = stack.pop();
+            returnVal.add(0, getNode(elementID).getValue());
 
-            ArrayList<Integer> neighbors = getNode(element).getOutward();
-            for (Integer neighbor : neighbors) {
-                if (neighbor != null && !visited.contains(neighbor)) {
-                    stack.add(neighbor);
-                    visited.add(neighbor);
+            ArrayList<Node> neighbors = getNode(elementID).getOutward();
+            for (int i = 0; i < neighbors.size(); i++) {
+                Node neighbor = neighbors.get(i);
+                Integer neighborID = neighbor.getID();
+                if (neighbor != null && !visited.contains(neighborID)) {
+                    stack.add(neighborID);
+                    visited.add(neighborID);
                 }
             }
         }
@@ -195,7 +203,7 @@ public class GraphDB implements Graph {
     }
 
     @Override
-    public Iterable<Integer> BFS(Object obj) throws NodeDoesNotExistException {
+    public Iterable<Object> BFS(Object obj) throws NodeDoesNotExistException {
         Integer firstID = obj.hashCode();
 
         // Error Handling
@@ -203,15 +211,15 @@ public class GraphDB implements Graph {
             throw new NodeDoesNotExistException();
         }
 
-        ArrayList<Integer> ordered = new ArrayList<>();
+        ArrayList<Object> ordered = new ArrayList<>();
         ArrayList<Integer> fringe = new ArrayList<>();
         fringe.add(firstID);
         while (fringe.size() != 0) {
             Integer curr = fringe.remove(0);
-            if (!ordered.contains(curr)) {
-                ordered.add(curr);
-                for (Integer neighbor : getNode(curr).getOutward()) {
-                    fringe.add(neighbor);
+            if (!ordered.contains(getNode(curr).getValue())) {
+                ordered.add(getNode(curr).getValue());
+                for (Node neighbor : getNode(curr).getOutward()) {
+                    fringe.add(neighbor.getID());
                 }
             }
         }

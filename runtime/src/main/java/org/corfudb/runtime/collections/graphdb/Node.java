@@ -10,8 +10,8 @@ import java.util.ArrayList;
 
 public class Node {
     private Object value;
-    ArrayList<Integer> inward;
-    ArrayList<Integer> outward;
+    ArrayList<Node> inward;
+    ArrayList<Node> outward;
 
     public Node(Object val) {
         value = val;
@@ -25,21 +25,21 @@ public class Node {
         return value;
     }
 
-    public ArrayList<Integer> getInward() {
+    public ArrayList<Node> getInward() {
         return inward;
     }
 
-    public ArrayList<Integer> getOutward() {
+    public ArrayList<Node> getOutward() {
         return outward;
     }
 
     public void addEdge(Node n) {
-        this.outward.add(n.getID());
-        n.getInward().add(this.getID());
+        this.outward.add(n);
+        n.getInward().add(this);
     }
 
     public void removeEdge(Node n) {
-        this.outward.remove(n.getID());
-        n.getInward().remove(this.getID());
+        this.outward.remove(n);
+        n.getInward().remove(this);
     }
 }
