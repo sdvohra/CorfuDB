@@ -3,6 +3,7 @@ package org.corfudb.runtime.collections.graphdb;
 import org.corfudb.runtime.CorfuRuntime;
 import org.corfudb.runtime.collections.SMRMap;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 /**
@@ -90,6 +91,7 @@ public class GraphDB implements Graph {
             throw new EdgeAlreadyExistsException();
         }
         fromNode.addEdge(toNode);
+
         nodes.put(fromNodeID, fromNode);
         nodes.put(toNodeID, toNode);
     }
@@ -128,11 +130,11 @@ public class GraphDB implements Graph {
         }
 
         ArrayList<Object> adjList = new ArrayList<>();
-        for (Node inwardNode : getNode(objID).getInward()) {
-            adjList.add(inwardNode.getValue());
+        for (Integer inwardNodeID : getNode(objID).getInward()) {
+            adjList.add(getNode(inwardNodeID).getValue());
         }
-        for (Node outwardNode : getNode(objID).getOutward()) {
-            adjList.add(outwardNode.getValue());
+        for (Integer outwardNodeID : getNode(objID).getOutward()) {
+            adjList.add(getNode(outwardNodeID).getValue());
         }
         return adjList;
     }
@@ -159,13 +161,12 @@ public class GraphDB implements Graph {
             Integer elementID = stack.pop();
             returnVal.add(getNode(elementID).getValue());
 
-            ArrayList<Node> neighbors = getNode(elementID).getOutward();
+            List<Integer> neighbors = getNode(elementID).getOutward();
             for (int i = neighbors.size() - 1; i >= 0; i--) {
-                Node neighbor = neighbors.get(i);
-                Integer neighborID = neighbor.getID();
-                if (neighbor != null && !visited.contains(neighborID)) {
-                    stack.add(neighborID);
-                    visited.add(neighborID);
+                Integer neighbor = neighbors.get(i);
+                if (neighbor != null && !visited.contains(neighbor)) {
+                    stack.add(neighbor);
+                    visited.add(neighbor);
                 }
             }
         }
@@ -194,13 +195,12 @@ public class GraphDB implements Graph {
             Integer elementID = stack.pop();
             returnVal.add(0, getNode(elementID).getValue());
 
-            ArrayList<Node> neighbors = getNode(elementID).getOutward();
+            List<Integer> neighbors = getNode(elementID).getOutward();
             for (int i = 0; i < neighbors.size(); i++) {
-                Node neighbor = neighbors.get(i);
-                Integer neighborID = neighbor.getID();
-                if (neighbor != null && !visited.contains(neighborID)) {
-                    stack.add(neighborID);
-                    visited.add(neighborID);
+                Integer neighbor = neighbors.get(i);
+                if (neighbor != null && !visited.contains(neighbor)) {
+                    stack.add(neighbor);
+                    visited.add(neighbor);
                 }
             }
         }
@@ -224,8 +224,8 @@ public class GraphDB implements Graph {
             Integer curr = fringe.remove(0);
             if (!ordered.contains(getNode(curr).getValue())) {
                 ordered.add(getNode(curr).getValue());
-                for (Node neighbor : getNode(curr).getOutward()) {
-                    fringe.add(neighbor.getID());
+                for (Integer neighbor : getNode(curr).getOutward()) {
+                    fringe.add(neighbor);
                 }
             }
         }

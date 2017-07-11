@@ -10,6 +10,7 @@ import org.junit.Test;
 import static org.assertj.core.api.Assertions.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -61,7 +62,7 @@ public class AppContextTest {
 
     @Test
     public void adjacentTest() {
-        AppContext myApp = new AppContext(runtime, "myGraph");
+        AppContext myApp = new AppContext(runtime, "myAdjacentGraph");
 
         // Create the elements
         TransportZone TZ1 = null;
@@ -120,7 +121,7 @@ public class AppContextTest {
 
     @Test
     public void preDFSTest() {
-        AppContext myApp = new AppContext(runtime, "myGraph");
+        AppContext myApp = new AppContext(runtime, "myPreGraph");
 
         // Create the elements
         TransportZone TZ1 = null;
@@ -184,7 +185,7 @@ public class AppContextTest {
 
     @Test
     public void postDFSTest() {
-        AppContext myApp = new AppContext(runtime, "myGraph");
+        AppContext myApp = new AppContext(runtime, "myPostGraph");
 
         // Create the elements
         TransportZone TZ1 = null;
@@ -248,7 +249,7 @@ public class AppContextTest {
 
     @Test
     public void bfsTest() {
-        AppContext myApp = new AppContext(runtime, "myGraph");
+        AppContext myApp = new AppContext(runtime, "myBFSGraph");
 
         // Create the elements
         TransportZone TZ1 = null;
@@ -331,7 +332,8 @@ public class AppContextTest {
 
     @Test
     public void clearTest() {
-        AppContext myApp = new AppContext(runtime, "myGraph");
+        AppContext myApp = new AppContext(runtime, "myClearGraph");
+        myApp.getGraph().clear();
 
         // Create the elements
         TransportZone TZ1 = null;
@@ -340,18 +342,18 @@ public class AppContextTest {
         LogicalPort LP1 = null, LP2 = null, LP3 = null;
         try {
             // Create Transport Zone
-            TZ1 = myApp.createTransportZone(UUID.randomUUID(), "TZ1", null);
+            TZ1 = myApp.createTransportZone(UUID.randomUUID(), "TZ1", new HashMap<>());
             // Create Transport Nodes
-            TN1 = myApp.createTransportNode(UUID.randomUUID(), "TN1", null);
-            TN2 = myApp.createTransportNode(UUID.randomUUID(), "TN2", null);
-            TN3 = myApp.createTransportNode(UUID.randomUUID(), "TN3", null);
+            TN1 = myApp.createTransportNode(UUID.randomUUID(), "TN1", new HashMap<>());
+            TN2 = myApp.createTransportNode(UUID.randomUUID(), "TN2", new HashMap<>());
+            TN3 = myApp.createTransportNode(UUID.randomUUID(), "TN3", new HashMap<>());
             // Create Logical Switches
-            LS1 = myApp.createLogicalSwitch(UUID.randomUUID(), "LS1", null, null);
-            LS2 = myApp.createLogicalSwitch(UUID.randomUUID(), "LS2", null, null);
+            LS1 = myApp.createLogicalSwitch(UUID.randomUUID(), "LS1", new ArrayList<>(), new HashMap<>());
+            LS2 = myApp.createLogicalSwitch(UUID.randomUUID(), "LS2", new ArrayList<>(), new HashMap<>());
             // Create Logical Ports
-            LP1 = myApp.createLogicalPort(UUID.randomUUID(), "LP1", null, null, null);
-            LP2 = myApp.createLogicalPort(UUID.randomUUID(), "LP2", null, null, null);
-            LP3 = myApp.createLogicalPort(UUID.randomUUID(), "LP3", null, null, null);
+            LP1 = myApp.createLogicalPort(UUID.randomUUID(), "LP1", new Attachment(UUID.randomUUID(), "1"), new ArrayList<>(), new HashMap<>());
+            LP2 = myApp.createLogicalPort(UUID.randomUUID(), "LP2", new Attachment(UUID.randomUUID(), "2"), new ArrayList<>(), new HashMap<>());
+            LP3 = myApp.createLogicalPort(UUID.randomUUID(), "LP3", new Attachment(UUID.randomUUID(), "3"), new ArrayList<>(), new HashMap<>());
         } catch (Exception e) {
             System.out.println("ERROR: " + e);
         }
@@ -377,7 +379,7 @@ public class AppContextTest {
 
     @Test
     public void errorTest() throws NodeDoesNotExistException, NodeAlreadyExistsException {
-        AppContext myApp = new AppContext(runtime, "myGraph");
+        AppContext myApp = new AppContext(runtime, "myErrorGraph");
         // Create Transport Zone
         TransportZone TZ1 = myApp.createTransportZone(UUID.randomUUID(), "TZ1", null);
         String dangerous = "NotInGraph";
@@ -412,7 +414,7 @@ public class AppContextTest {
 
     @Test
     public void deepGraphTest() throws NodeAlreadyExistsException {
-        AppContext myApp = new AppContext(runtime, "deepGraph");
+        AppContext myApp = new AppContext(runtime, "myDeepGraph");
         myApp.getGraph().clear();
 
         ArrayList<String> objects = new ArrayList<>();

@@ -1,6 +1,7 @@
 package org.corfudb.runtime.collections.graphdb;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A single data element in a GraphDB.
@@ -10,8 +11,8 @@ import java.util.ArrayList;
 
 public class Node {
     private Object value;
-    ArrayList<Node> inward;
-    ArrayList<Node> outward;
+    List<Integer> inward;
+    List<Integer> outward;
 
     public Node(Object val) {
         value = val;
@@ -25,21 +26,21 @@ public class Node {
         return value;
     }
 
-    public ArrayList<Node> getInward() {
+    public List<Integer> getInward() {
         return inward;
     }
 
-    public ArrayList<Node> getOutward() {
+    public List<Integer> getOutward() {
         return outward;
     }
 
     public void addEdge(Node n) {
-        this.outward.add(n);
-        n.getInward().add(this);
+        this.outward.add(n.getID());
+        n.getInward().add(this.getID());
     }
 
     public void removeEdge(Node n) {
-        this.outward.remove(n);
-        n.getInward().remove(this);
+        this.outward.remove(n.getID());
+        n.getInward().remove(this.getID());
     }
 }
