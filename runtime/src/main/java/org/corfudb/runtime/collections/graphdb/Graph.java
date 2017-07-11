@@ -1,7 +1,7 @@
 package org.corfudb.runtime.collections.graphdb;
 
 /**
- * Interface class that represents an undirected graph.
+ * Interface class that represents a directed graph.
  * Contains the following methods.
  *
  * @author shriyav

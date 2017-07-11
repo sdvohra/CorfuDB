@@ -3,7 +3,6 @@ package org.corfudb.runtime.collections.graphdb;
 import org.corfudb.runtime.CorfuRuntime;
 import org.corfudb.runtime.collections.SMRMap;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 /**
@@ -82,6 +81,7 @@ public class GraphDB implements Graph {
         Integer toNodeID = (new Node(to)).getID();
         Node fromNode = getNode(fromNodeID);
         Node toNode = getNode(toNodeID);
+
         // Error Handling
         if (fromNode == null || toNode == null) {
             throw new NodeDoesNotExistException();
@@ -102,6 +102,7 @@ public class GraphDB implements Graph {
         Integer toNodeID = (new Node(to)).getID();
         Node fromNode = getNode(fromNodeID);
         Node toNode = getNode(toNodeID);
+
         // Error Handling
         if (fromNode == null || toNode == null) {
             throw new NodeDoesNotExistException();
@@ -110,6 +111,7 @@ public class GraphDB implements Graph {
             throw new EdgeDoesNotExistException();
         }
         fromNode.removeEdge(toNode);
+
         nodes.put(fromNodeID, fromNode);
         nodes.put(toNodeID, toNode);
     }
