@@ -15,13 +15,13 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Creates an AppContext and verifies that GraphDB methods
+ * Creates an GraphDBAppContext and verifies that GraphDB methods
  * work as expected.
  *
  * @author shriyav
  */
-public class AppContextTest {
-    private static final String USAGE = "Usage: AppContextTest [-c <conf>]\n"
+public class GraphDBAppContextTest {
+    private static final String USAGE = "Usage: GraphDBAppContextTest [-c <conf>]\n"
             + "Options:\n"
             + " -c <conf>     Set the configuration host and port  [default: localhost:9999]\n";
     private static boolean setUpComplete = false;
@@ -62,7 +62,7 @@ public class AppContextTest {
 
     @Test
     public void adjacentTest() {
-        AppContext myApp = new AppContext(runtime, "myAdjacentGraph");
+        GraphDBAppContext myApp = new GraphDBAppContext(runtime, "myAdjacentGraph");
 
         // Create the elements
         TransportZone TZ1 = null;
@@ -121,7 +121,7 @@ public class AppContextTest {
 
     @Test
     public void preDFSTest() {
-        AppContext myApp = new AppContext(runtime, "myPreGraph");
+        GraphDBAppContext myApp = new GraphDBAppContext(runtime, "myPreGraph");
 
         // Create the elements
         TransportZone TZ1 = null;
@@ -185,7 +185,7 @@ public class AppContextTest {
 
     @Test
     public void postDFSTest() {
-        AppContext myApp = new AppContext(runtime, "myPostGraph");
+        GraphDBAppContext myApp = new GraphDBAppContext(runtime, "myPostGraph");
 
         // Create the elements
         TransportZone TZ1 = null;
@@ -249,7 +249,7 @@ public class AppContextTest {
 
     @Test
     public void bfsTest() {
-        AppContext myApp = new AppContext(runtime, "myBFSGraph");
+        GraphDBAppContext myApp = new GraphDBAppContext(runtime, "myBFSGraph");
 
         // Create the elements
         TransportZone TZ1 = null;
@@ -313,7 +313,7 @@ public class AppContextTest {
 
     @Test
     public void clearTestIntegers() {
-        AppContext myApp = new AppContext(runtime, "myIntegerGraph");
+        GraphDBAppContext myApp = new GraphDBAppContext(runtime, "myIntegerGraph");
 
         // Create the elements
         try {
@@ -332,7 +332,7 @@ public class AppContextTest {
 
     @Test
     public void clearTest() {
-        AppContext myApp = new AppContext(runtime, "myClearGraph");
+        GraphDBAppContext myApp = new GraphDBAppContext(runtime, "myClearGraph");
         myApp.getGraph().clear();
 
         // Create the elements
@@ -379,7 +379,7 @@ public class AppContextTest {
 
     @Test
     public void errorTest() throws NodeDoesNotExistException, NodeAlreadyExistsException {
-        AppContext myApp = new AppContext(runtime, "myErrorGraph");
+        GraphDBAppContext myApp = new GraphDBAppContext(runtime, "myErrorGraph");
         // Create Transport Zone
         TransportZone TZ1 = myApp.createTransportZone(UUID.randomUUID(), "TZ1", null);
         String dangerous = "NotInGraph";
@@ -414,7 +414,7 @@ public class AppContextTest {
 
     @Test
     public void deepGraphTest() throws NodeAlreadyExistsException {
-        AppContext myApp = new AppContext(runtime, "myDeepGraph");
+        GraphDBAppContext myApp = new GraphDBAppContext(runtime, "myDeepGraph");
         myApp.getGraph().clear();
 
         ArrayList<String> objects = new ArrayList<>();

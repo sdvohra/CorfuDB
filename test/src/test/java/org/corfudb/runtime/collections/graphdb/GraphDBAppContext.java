@@ -6,15 +6,15 @@ import org.corfudb.runtime.view.AbstractViewTest;
 import java.util.*;
 
 /**
- * Provides runtime context to tie the data access layer together. Contains
- * the CorfuRuntime and a GraphDB. GraphDB can be constructed here.
+ * Implements the AppContext interface using a native graph encoding.
+ * Contains the CorfuRuntime and a GraphDB.
  *
  * @author shriyav
  */
-public class AppContext extends AbstractViewTest {
+public class GraphDBAppContext extends AbstractViewTest implements AppContext {
     GraphDB graph;
 
-    public AppContext(CorfuRuntime rt, String graphName) {
+    public GraphDBAppContext(CorfuRuntime rt, String graphName) {
         graph = new GraphDB(rt, graphName);
     }
 
@@ -22,7 +22,7 @@ public class AppContext extends AbstractViewTest {
         return graph;
     }
 
-    /** Creates new TransportZone in graph and returns ID of new Node in graph. */
+    @Override
     public TransportZone createTransportZone(UUID uuid, String name, Map<String, String> props)
             throws NodeAlreadyExistsException {
         TransportZone tz = new TransportZone(uuid, name, props);
@@ -30,7 +30,7 @@ public class AppContext extends AbstractViewTest {
         return tz;
     }
 
-    /** Creates new TransportNode in graph and returns ID of new Node in graph. */
+    @Override
     public TransportNode createTransportNode(UUID uuid, String name, Map<String, Object> props)
             throws NodeAlreadyExistsException {
         TransportNode tn = new TransportNode(uuid, name, props);
@@ -38,7 +38,7 @@ public class AppContext extends AbstractViewTest {
         return tn;
     }
 
-    /** Creates new LogicalSwitch in graph and returns ID of new Node in graph. */
+    @Override
     public LogicalSwitch createLogicalSwitch(UUID uuid, String name, List<UUID> profs,
                                     Map<String, Object> props) throws NodeAlreadyExistsException {
         LogicalSwitch ls = new LogicalSwitch(uuid, name, profs, props);
@@ -46,7 +46,7 @@ public class AppContext extends AbstractViewTest {
         return ls;
     }
 
-    /** Creates new LogicalPort in graph and returns ID of new Node in graph. */
+    @Override
     public LogicalPort createLogicalPort(UUID uuid, String name, Attachment attachment, List<UUID> profs,
                                  Map<String, Object> props) throws NodeAlreadyExistsException {
         LogicalPort lp = new LogicalPort(uuid, name, attachment, profs, props);
@@ -54,14 +54,17 @@ public class AppContext extends AbstractViewTest {
         return lp;
     }
 
+    @Override
     public void connectTZtoTN(TransportZone tz, TransportNode tn) throws Exception {
         graph.connect(tz, tn);
     }
 
+    @Override
     public void connectTZtoLS(TransportZone tz, LogicalSwitch ls) throws Exception {
         graph.connect(tz, ls);
     }
 
+    @Override
     public void connectLStoLP(LogicalSwitch ls, LogicalPort lp) throws Exception {
         graph.connect(ls, lp);
     }
