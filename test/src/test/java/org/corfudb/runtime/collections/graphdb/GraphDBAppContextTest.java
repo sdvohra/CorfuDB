@@ -505,4 +505,80 @@ public class GraphDBAppContextTest {
         expected4.add(LP3);
         Assert.assertEquals(expected4, actual4);
     }
+
+    @Test
+    public void bigTest() throws Exception {
+        GraphDBAppContext myApp = new GraphDBAppContext(runtime, "myBigGraph");
+        myApp.getGraph().clear();
+        Set<UUID> existing = new HashSet<>();
+
+        // Create Transport Zones
+        Map<String, TransportZone> transportZones = new HashMap<>();
+        for (int i = 1; i <= 20000; i++) {
+            UUID newID = UUID.randomUUID();
+            while (existing.contains(newID)) {
+                newID = UUID.randomUUID();
+            }
+            TransportZone currTZ = myApp.createTransportZone(newID, "TZ" + i, null);
+            existing.add(newID);
+            transportZones.put("TZ" + i, currTZ);
+        }
+
+        // Create Transport Nodes
+        Map<String, TransportNode> transportNodes = new HashMap<>();
+        for (int i = 1; i <= 40000; i++) {
+            UUID newID = UUID.randomUUID();
+            while (existing.contains(newID)) {
+                newID = UUID.randomUUID();
+            }
+            TransportNode currTN = myApp.createTransportNode(newID, "TN" + i, null);
+            existing.add(newID);
+            transportNodes.put("TN" + i, currTN);
+        }
+
+        // Create Logical Switches
+        Map<String, LogicalSwitch> logicalSwitches = new HashMap<>();
+        for (int i = 1; i <= 20000; i++) {
+            UUID newID = UUID.randomUUID();
+            while (existing.contains(newID)) {
+                newID = UUID.randomUUID();
+            }
+            LogicalSwitch currLS = myApp.createLogicalSwitch(newID, "LS" + i, null, null);
+            existing.add(newID);
+            logicalSwitches.put("LS" + i, currLS);
+        }
+
+        // Create Logical Ports
+        Map<String, LogicalPort> logicalPorts = new HashMap<>();
+        for (int i = 1; i <= 40000; i++) {
+            UUID newID = UUID.randomUUID();
+            while (existing.contains(newID)) {
+                newID = UUID.randomUUID();
+            }
+            LogicalPort currLP = myApp.createLogicalPort(newID, "LS" + i, null,
+                    null, null);
+            existing.add(newID);
+            logicalPorts.put("LP" + i, currLP);
+        }
+
+        // Connect TZ --> TN
+        for (int i = 1; i <= 20000; i++) {
+            myApp.connectTZtoTN(transportZones.get("TZ" + i), transportNodes.get("TN" + i));
+            myApp.connectTZtoTN(transportZones.get("TZ" + i), transportNodes.get("TN" + 2 * i));
+        }
+
+        // Connect TZ --> LS
+        for (int i = 1; i <= 20000; i++) {
+            myApp.connectTZtoLS(transportZones.get("TZ" + i), logicalSwitches.get("LS" + i));
+        }
+
+        // Connect LS --> LP
+        for (int i = 1; i <= 20000; i++) {
+            myApp.connectLStoLP(logicalSwitches.get("LS" + i), logicalPorts.get("LP" + i));
+            myApp.connectLStoLP(logicalSwitches.get("LS" + i), logicalPorts.get("LP" + 2 * i));
+        }
+
+        // Query
+        myApp.queryTZtoLP(transportZones.get("TZ4576"));
+    }
 }
