@@ -19,7 +19,7 @@ import java.util.UUID;
 @Data
 @AllArgsConstructor
 @ToString
-public class LogicalPort {
+public class LogicalPort extends Component {
     UUID id;
     String name;
     Attachment attachment;

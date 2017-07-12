@@ -7,7 +7,7 @@ import java.util.*;
 
 /**
  * Implements Graph. Uses adjacency lists to represent
- * an undirected graph of Nodes.
+ * a directed graph of Nodes.
  *
  * @author shriyav
  */
@@ -43,6 +43,11 @@ public class GraphDB implements Graph {
     }
 
     public Node getNode(Integer id) { return nodes.get(id); }
+
+    public Integer getID(Object obj) {
+        Node tempObj = new Node(obj);
+        return tempObj.getID();
+    }
 
     public void update(Object obj) throws NodeDoesNotExistException {
         // Error Handling

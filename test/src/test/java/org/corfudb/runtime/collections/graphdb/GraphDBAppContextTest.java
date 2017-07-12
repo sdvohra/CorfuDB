@@ -9,13 +9,10 @@ import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
- * Creates an GraphDBAppContext and verifies that GraphDB methods
+ * Creates a GraphDBAppContext and verifies that GraphDB methods
  * work as expected.
  *
  * @author shriyav
@@ -26,6 +23,7 @@ public class GraphDBAppContextTest {
             + " -c <conf>     Set the configuration host and port  [default: localhost:9999]\n";
     private static boolean setUpComplete = false;
     private static CorfuRuntime runtime;
+    AppContext something; // assign it to something in SetUp
 
     /**
      * Internally, the corfuRuntime interacts with the CorfuDB service over TCP/IP sockets.
@@ -342,18 +340,18 @@ public class GraphDBAppContextTest {
         LogicalPort LP1 = null, LP2 = null, LP3 = null;
         try {
             // Create Transport Zone
-            TZ1 = myApp.createTransportZone(UUID.randomUUID(), "TZ1", new HashMap<>());
+            TZ1 = myApp.createTransportZone(UUID.randomUUID(), "TZ1", null);
             // Create Transport Nodes
-            TN1 = myApp.createTransportNode(UUID.randomUUID(), "TN1", new HashMap<>());
-            TN2 = myApp.createTransportNode(UUID.randomUUID(), "TN2", new HashMap<>());
-            TN3 = myApp.createTransportNode(UUID.randomUUID(), "TN3", new HashMap<>());
+            TN1 = myApp.createTransportNode(UUID.randomUUID(), "TN1", null);
+            TN2 = myApp.createTransportNode(UUID.randomUUID(), "TN2", null);
+            TN3 = myApp.createTransportNode(UUID.randomUUID(), "TN3", null);
             // Create Logical Switches
-            LS1 = myApp.createLogicalSwitch(UUID.randomUUID(), "LS1", new ArrayList<>(), new HashMap<>());
-            LS2 = myApp.createLogicalSwitch(UUID.randomUUID(), "LS2", new ArrayList<>(), new HashMap<>());
+            LS1 = myApp.createLogicalSwitch(UUID.randomUUID(), "LS1", null, null);
+            LS2 = myApp.createLogicalSwitch(UUID.randomUUID(), "LS2", null, null);
             // Create Logical Ports
-            LP1 = myApp.createLogicalPort(UUID.randomUUID(), "LP1", new Attachment(UUID.randomUUID(), "1"), new ArrayList<>(), new HashMap<>());
-            LP2 = myApp.createLogicalPort(UUID.randomUUID(), "LP2", new Attachment(UUID.randomUUID(), "2"), new ArrayList<>(), new HashMap<>());
-            LP3 = myApp.createLogicalPort(UUID.randomUUID(), "LP3", new Attachment(UUID.randomUUID(), "3"), new ArrayList<>(), new HashMap<>());
+            LP1 = myApp.createLogicalPort(UUID.randomUUID(), "LP1", null, null, null);
+            LP2 = myApp.createLogicalPort(UUID.randomUUID(), "LP2", null, null, null);
+            LP3 = myApp.createLogicalPort(UUID.randomUUID(), "LP3", null, null, null);
         } catch (Exception e) {
             System.out.println("ERROR: " + e);
         }
@@ -437,5 +435,74 @@ public class GraphDBAppContextTest {
         } catch (Exception e) {
             Assert.fail("Error while performing preDFS/printing objects!");
         }
+    }
+
+    @Test
+    public void queryTest() {
+        GraphDBAppContext myApp = new GraphDBAppContext(runtime, "myQueryGraph");
+
+        // Create the elements
+        TransportZone TZ1 = null;
+        TransportNode TN1 = null, TN2 = null, TN3 = null;
+        LogicalSwitch LS1 = null, LS2 = null;
+        LogicalPort LP1 = null, LP2 = null, LP3 = null;
+        try {
+            // Create Transport Zone
+            TZ1 = myApp.createTransportZone(UUID.randomUUID(), "TZ1", null);
+            // Create Transport Nodes
+            TN1 = myApp.createTransportNode(UUID.randomUUID(), "TN1", null);
+            TN2 = myApp.createTransportNode(UUID.randomUUID(), "TN2", null);
+            TN3 = myApp.createTransportNode(UUID.randomUUID(), "TN3", null);
+            // Create Logical Switches
+            LS1 = myApp.createLogicalSwitch(UUID.randomUUID(), "LS1", null, null);
+            LS2 = myApp.createLogicalSwitch(UUID.randomUUID(), "LS2", null, null);
+            // Create Logical Ports
+            LP1 = myApp.createLogicalPort(UUID.randomUUID(), "LP1", null, null, null);
+            LP2 = myApp.createLogicalPort(UUID.randomUUID(), "LP2", null, null, null);
+            LP3 = myApp.createLogicalPort(UUID.randomUUID(), "LP3", null, null, null);
+        } catch(Exception e) {
+            System.out.println("ERROR: " + e);
+        }
+
+        // Connect the elements
+        try {
+            myApp.connectTZtoTN(TZ1, TN1);
+            myApp.connectTZtoTN(TZ1, TN2);
+            myApp.connectTZtoTN(TZ1, TN3);
+            myApp.connectTZtoLS(TZ1, LS1);
+            myApp.connectTZtoLS(TZ1, LS2);
+            myApp.connectLStoLP(LS1, LP1);
+            myApp.connectLStoLP(LS1, LP2);
+            myApp.connectLStoLP(LS2, LP3);
+        } catch (Exception e) {
+            System.out.println("ERROR: " + e);
+        }
+
+        Set<TransportNode> actual = myApp.queryTZtoTN(TZ1);
+        Set<TransportNode> expected = new HashSet<>();
+        expected.add(TN1);
+        expected.add(TN2);
+        expected.add(TN3);
+        Assert.assertEquals(expected, actual);
+
+        Set<LogicalSwitch> actualLS = myApp.queryTZtoLS(TZ1);
+        Set<LogicalSwitch> expectedLS = new HashSet<>();
+        expectedLS.add(LS1);
+        expectedLS.add(LS2);
+        Assert.assertEquals(expectedLS, actualLS);
+
+        Set<LogicalPort> actualLP = myApp.queryLStoLP(LS1);
+        Set<LogicalPort> expectedLP = new HashSet<>();
+        expectedLP.add(LP1);
+        expectedLP.add(LP2);
+        Assert.assertEquals(expectedLP, actualLP);
+
+        Set<LogicalPort> actual4 = myApp.queryTZtoLP(TZ1);
+        Set<LogicalPort> expected4 = new HashSet<>();
+        expected4.add(LP1);
+        expected4.add(LP2);
+        Assert.assertNotEquals(expected4, actual4);
+        expected4.add(LP3);
+        Assert.assertEquals(expected4, actual4);
     }
 }

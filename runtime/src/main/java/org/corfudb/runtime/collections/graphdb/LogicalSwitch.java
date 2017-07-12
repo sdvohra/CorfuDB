@@ -19,7 +19,7 @@ import java.util.UUID;
 @Data
 @AllArgsConstructor
 @ToString
-public class LogicalSwitch {
+public class LogicalSwitch extends Component {
     UUID id;
     String name;
     List<UUID> profiles;

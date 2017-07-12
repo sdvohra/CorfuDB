@@ -68,4 +68,41 @@ public class GraphDBAppContext extends AbstractViewTest implements AppContext {
     public void connectLStoLP(LogicalSwitch ls, LogicalPort lp) throws Exception {
         graph.connect(ls, lp);
     }
+
+    public Set<TransportNode> queryTZtoTN(TransportZone tz) {
+        Set<TransportNode> result = new HashSet<>();
+        for (Integer id : graph.getNode(graph.getID(tz)).getOutward()) {
+            if (graph.getNode(id).getValue() instanceof TransportNode) {
+                result.add((TransportNode) graph.getNode(id).getValue());
+            }
+        }
+        return result;
+    }
+
+    public Set<LogicalSwitch> queryTZtoLS(TransportZone tz) {
+        Set<LogicalSwitch> result = new HashSet<>();
+        for (Integer id : graph.getNode(graph.getID(tz)).getOutward()) {
+            if (graph.getNode(id).getValue() instanceof LogicalSwitch) {
+                result.add((LogicalSwitch) graph.getNode(id).getValue());
+            }
+        }
+        return result;
+    }
+
+    public Set<LogicalPort> queryLStoLP(LogicalSwitch ls) {
+        Set<LogicalPort> result = new HashSet<>();
+        for (Integer id : graph.getNode(graph.getID(ls)).getOutward()) {
+            result.add((LogicalPort) graph.getNode(id).getValue());
+        }
+        return result;
+    }
+
+    public Set<LogicalPort> queryTZtoLP(TransportZone tz) {
+        Set<LogicalPort> result = new HashSet<>();
+        Set<LogicalSwitch> resultLS = queryTZtoLS(tz);
+        for (LogicalSwitch ls : resultLS) {
+            result.addAll(queryLStoLP(ls));
+        }
+        return result;
+    }
 }

@@ -18,7 +18,7 @@ import java.util.UUID;
 @Data
 @AllArgsConstructor
 @ToString
-public class TransportZone {
+public class TransportZone extends Component {
     UUID id;
     String name;
     Map<String, String> properties;

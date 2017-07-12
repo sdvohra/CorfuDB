@@ -2,6 +2,7 @@ package org.corfudb.runtime.collections.graphdb;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -19,8 +20,7 @@ public interface AppContext {
             throws NodeAlreadyExistsException;
 
     /** Creates new LogicalSwitch in graph and returns ID of new Node in graph. */
-    LogicalSwitch createLogicalSwitch(UUID uuid, String name, List<UUID> profs, Map<String, Object> props)
-            throws NodeAlreadyExistsException;
+    LogicalSwitch createLogicalSwitch(UUID uuid, String name, List<UUID> profs, Map<String, Object> props) throws NodeAlreadyExistsException;
 
     /** Creates new LogicalPort in graph and returns ID of new Node in graph. */
     LogicalPort createLogicalPort(UUID uuid, String name, Attachment attachment, List<UUID> profs,

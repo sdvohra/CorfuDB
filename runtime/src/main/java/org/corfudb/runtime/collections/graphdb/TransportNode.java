@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.ToString;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -17,7 +18,7 @@ import java.util.UUID;
 @Data
 @AllArgsConstructor
 @ToString
-public class TransportNode {
+public class TransportNode extends Component {
     UUID id;
     String name;
     Map<String, Object> properties;
