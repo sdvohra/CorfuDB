@@ -514,7 +514,7 @@ public class GraphDBAppContextTest {
 
         // Create Transport Zones
         Map<String, TransportZone> transportZones = new HashMap<>();
-        for (int i = 1; i <= 20000; i++) {
+        for (int i = 1; i <= 2000; i++) {
             UUID newID = UUID.randomUUID();
             while (existing.contains(newID)) {
                 newID = UUID.randomUUID();
@@ -538,7 +538,7 @@ public class GraphDBAppContextTest {
 
         // Create Logical Switches
         Map<String, LogicalSwitch> logicalSwitches = new HashMap<>();
-        for (int i = 1; i <= 20000; i++) {
+        for (int i = 1; i <= 40000; i++) {
             UUID newID = UUID.randomUUID();
             while (existing.contains(newID)) {
                 newID = UUID.randomUUID();
@@ -550,7 +550,7 @@ public class GraphDBAppContextTest {
 
         // Create Logical Ports
         Map<String, LogicalPort> logicalPorts = new HashMap<>();
-        for (int i = 1; i <= 40000; i++) {
+        for (int i = 1; i <= 80000; i++) {
             UUID newID = UUID.randomUUID();
             while (existing.contains(newID)) {
                 newID = UUID.randomUUID();
@@ -561,24 +561,48 @@ public class GraphDBAppContextTest {
             logicalPorts.put("LP" + i, currLP);
         }
 
-        // Connect TZ --> TN
-        for (int i = 1; i <= 20000; i++) {
-            myApp.connectTZtoTN(transportZones.get("TZ" + i), transportNodes.get("TN" + i));
-            myApp.connectTZtoTN(transportZones.get("TZ" + i), transportNodes.get("TN" + 2 * i));
+        // Randomize connections
+        Random rand = new Random();
+        int min = 1;
+        int max;
+
+
+        // Connect LS --> LP
+        for (int i = 1; i <= logicalPorts.size(); i++) {
+            max = logicalSwitches.size();
+            for (int j = 0; j < 3; j++) {
+                int randomNum = rand.nextInt((max - min) + 1) + min;
+                try {
+                    myApp.connectLStoLP(logicalSwitches.get("LS" + randomNum), logicalPorts.get("LP" + i));
+                } catch (Exception e) {
+                    continue;
+                }
+            }
         }
 
         // Connect TZ --> LS
-        for (int i = 1; i <= 20000; i++) {
-            myApp.connectTZtoLS(transportZones.get("TZ" + i), logicalSwitches.get("LS" + i));
+        for (int i = 1; i <= logicalSwitches.size(); i++) {
+            max = transportZones.size();
+            int randomNum = rand.nextInt((max - min) + 1) + min;
+            myApp.connectTZtoLS(transportZones.get("TZ" + randomNum), logicalSwitches.get("LS" + i));
         }
 
-        // Connect LS --> LP
-        for (int i = 1; i <= 20000; i++) {
-            myApp.connectLStoLP(logicalSwitches.get("LS" + i), logicalPorts.get("LP" + i));
-            myApp.connectLStoLP(logicalSwitches.get("LS" + i), logicalPorts.get("LP" + 2 * i));
+        // Connect TZ --> TN
+        for (int i = 1; i <= transportNodes.size(); i++) {
+            max = transportZones.size();
+            for (int j = 0; j < 5; j++) {
+                int randomNum = rand.nextInt((max - min) + 1) + min;
+                try {
+                    myApp.connectTZtoTN(transportZones.get("TZ" + randomNum), transportNodes.get("TN" + i));
+                } catch (Exception e) {
+                    continue;
+                }
+            }
         }
 
         // Query
-        myApp.queryTZtoLP(transportZones.get("TZ4576"));
+        max = transportZones.size();
+        int randomNum = rand.nextInt((max - min) + 1) + min;
+        System.out.println(myApp.queryTZtoLP(transportZones.get("TZ" + randomNum)).size());
     }
 }
