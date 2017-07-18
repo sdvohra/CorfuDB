@@ -1,5 +1,7 @@
 package org.corfudb.runtime.collections.graphdb;
 
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.ToString;
@@ -24,4 +26,13 @@ public class LogicalSwitch extends Component {
     String name;
     List<UUID> profiles;
     Map<String, Object> properties;
+
+    @Override
+    public int hashCode() {
+        Hasher hasher = Hashing.crc32c().newHasher();
+        hasher.putLong(id.getLeastSignificantBits());
+        hasher.putLong(id.getMostSignificantBits());
+
+        return hasher.hash().asInt();
+    }
 }

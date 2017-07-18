@@ -1,5 +1,8 @@
 package org.corfudb.runtime.collections.graphdb;
 
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
+
 /**
  * Represents an edge between two Components in MapsGraphDB.
  *
@@ -25,6 +28,12 @@ public class Edge {
 
     @Override
     public int hashCode() {
-        return from.hashCode()*2 + to.hashCode();
+        Hasher hasher = Hashing.crc32c().newHasher();
+        hasher.putLong(from.getId().getLeastSignificantBits());
+        hasher.putLong(from.getId().getMostSignificantBits());
+        hasher.putLong(to.getId().getLeastSignificantBits());
+        hasher.putLong(to.getId().getMostSignificantBits());
+
+        return hasher.hash().asInt();
     }
 }

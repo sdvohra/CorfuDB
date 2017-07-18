@@ -196,7 +196,11 @@ public class MapsGraphDB {
         }
         Edge newEdge = new Edge(outward, inward);
         if (edges.containsKey(newEdge.hashCode())) {
-            throw new EdgeAlreadyExistsException();
+            if (edges.get(newEdge.hashCode()).equals(newEdge)) {
+                throw new EdgeAlreadyExistsException();
+            } else {
+                System.out.println("EAE ERROR");
+            }
         }
         edges.put(newEdge.hashCode(), newEdge);
     }

@@ -1,7 +1,9 @@
 package org.corfudb.runtime.collections.graphdb;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * A single data element in a GraphDB.
@@ -11,26 +13,31 @@ import java.util.List;
 
 public class Node {
     private Object value;
-    List<Integer> inward;
-    List<Integer> outward;
+    Set<Integer> inward;
+    Set<Integer> outward;
 
     public Node(Object val) {
         value = val;
-        inward = new ArrayList<>();
-        outward = new ArrayList<>();
+        inward = new HashSet<>();
+        outward = new HashSet<>();
     }
 
-    public Integer getID() { return value.hashCode(); }
+    public Integer getID() {
+        if (value instanceof Component) {
+            return ((Component) value).getId().hashCode();
+        }
+        return value.hashCode();
+    }
 
     public Object getValue() {
         return value;
     }
 
-    public List<Integer> getInward() {
+    public Set<Integer> getInward() {
         return inward;
     }
 
-    public List<Integer> getOutward() {
+    public Set<Integer> getOutward() {
         return outward;
     }
 
