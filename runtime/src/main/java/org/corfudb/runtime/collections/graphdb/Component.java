@@ -9,8 +9,6 @@ import java.util.UUID;
  * @author shriyav
  */
 
-public class Component {
-    public UUID getId() {
-        return null;
-    }
+public abstract class Component {
+    public abstract UUID getId();
 }

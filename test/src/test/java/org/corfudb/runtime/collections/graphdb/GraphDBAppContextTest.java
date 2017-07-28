@@ -23,7 +23,6 @@ public class GraphDBAppContextTest {
             + " -c <conf>     Set the configuration host and port  [default: localhost:9999]\n";
     private static boolean setUpComplete = false;
     private static CorfuRuntime runtime;
-    AppContext something; // assign it to something in SetUp
 
     /**
      * Internally, the corfuRuntime interacts with the CorfuDB service over TCP/IP sockets.
@@ -82,7 +81,7 @@ public class GraphDBAppContextTest {
             LP2 = myApp.createLogicalPort(UUID.randomUUID(), "LP2", null, null, null);
             LP3 = myApp.createLogicalPort(UUID.randomUUID(), "LP3", null, null, null);
         } catch(Exception e) {
-            System.out.println("ERROR: " + e);
+            Assert.fail("ERROR: " + e);
         }
 
         // Connect the elements
@@ -96,7 +95,7 @@ public class GraphDBAppContextTest {
             myApp.connectLStoLP(LS1, LP2);
             myApp.connectLStoLP(LS2, LP3);
         } catch (Exception e) {
-            System.out.println("ERROR: " + e);
+            Assert.fail("ERROR: " + e);
         }
 
         ArrayList<Object> actual = new ArrayList<>();
@@ -112,9 +111,9 @@ public class GraphDBAppContextTest {
                 actual.add(friend);
             }
         } catch (Exception e) {
-            System.out.println("ERROR: " + e);
+            Assert.fail("ERROR: " + e);
         }
-        Assert.assertEquals(expected, actual);
+        Assert.assertTrue(expected.containsAll(actual) && actual.containsAll(expected));
     }
 
     @Test
@@ -141,7 +140,7 @@ public class GraphDBAppContextTest {
             LP2 = myApp.createLogicalPort(UUID.randomUUID(), "LP2", null, null, null);
             LP3 = myApp.createLogicalPort(UUID.randomUUID(), "LP3", null, null, null);
         } catch(Exception e) {
-            System.out.println("ERROR: " + e);
+            Assert.fail("ERROR: " + e);
         }
 
         // Connect the elements
@@ -155,7 +154,7 @@ public class GraphDBAppContextTest {
             myApp.connectLStoLP(LS1, LP2);
             myApp.connectLStoLP(LS2, LP3);
         } catch (Exception e) {
-            System.out.println("ERROR: " + e);
+            Assert.fail("ERROR: " + e);
         }
 
         ArrayList<Object> actual = new ArrayList<>();
@@ -176,9 +175,21 @@ public class GraphDBAppContextTest {
                 actual.add(item);
             }
         } catch (Exception e) {
-            System.out.println("ERROR: " + e);
+            Assert.fail("ERROR: " + e);
         }
-        Assert.assertEquals(expected, actual);
+
+        Assert.assertTrue(expected.size() == actual.size());
+        Assert.assertEquals(expected.get(0), actual.get(0));
+        Assert.assertTrue(actual.containsAll(expected));
+        int indexLS1 = actual.indexOf(LS1);
+        if (!(((actual.indexOf(LP1) == indexLS1 + 1) || (actual.indexOf(LP1) == indexLS1 + 2)) &&
+                ((actual.indexOf(LP2) == indexLS1 + 1) || (actual.indexOf(LP2) == indexLS1 + 2)))) {
+            Assert.fail();
+        }
+        int indexLS2 = actual.indexOf(LS2);
+        if (actual.indexOf(LP3) != indexLS2 + 1) {
+            Assert.fail();
+        }
     }
 
     @Test
@@ -205,7 +216,7 @@ public class GraphDBAppContextTest {
             LP2 = myApp.createLogicalPort(UUID.randomUUID(), "LP2", null, null, null);
             LP3 = myApp.createLogicalPort(UUID.randomUUID(), "LP3", null, null, null);
         } catch(Exception e) {
-            System.out.println("ERROR: " + e);
+            Assert.fail("ERROR: " + e);
         }
 
         // Connect the elements
@@ -219,7 +230,7 @@ public class GraphDBAppContextTest {
             myApp.connectLStoLP(LS1, LP2);
             myApp.connectLStoLP(LS2, LP3);
         } catch (Exception e) {
-            System.out.println("ERROR: " + e);
+            Assert.fail("ERROR: " + e);
         }
 
         ArrayList<Object> actual = new ArrayList<>();
@@ -240,9 +251,21 @@ public class GraphDBAppContextTest {
                 actual.add(item);
             }
         } catch (Exception e) {
-            System.out.println("ERROR: " + e);
+            Assert.fail("ERROR: " + e);
         }
-        Assert.assertEquals(expected, actual);
+
+        Assert.assertTrue(expected.size() == actual.size());
+        Assert.assertEquals(expected.get(expected.size()-1), actual.get(actual.size()-1));
+        Assert.assertTrue(actual.containsAll(expected));
+        int indexLS1 = actual.indexOf(LS1);
+        if (!(((actual.indexOf(LP1) == indexLS1 - 1) || (actual.indexOf(LP1) == indexLS1 - 2)) &&
+                ((actual.indexOf(LP2) == indexLS1 - 1) || (actual.indexOf(LP2) == indexLS1 - 2)))) {
+            Assert.fail();
+        }
+        int indexLS2 = actual.indexOf(LS2);
+        if (actual.indexOf(LP3) != indexLS2 - 1) {
+            Assert.fail();
+        }
     }
 
     @Test
@@ -269,7 +292,7 @@ public class GraphDBAppContextTest {
             LP2 = myApp.createLogicalPort(UUID.randomUUID(), "LP2", null, null, null);
             LP3 = myApp.createLogicalPort(UUID.randomUUID(), "LP3", null, null, null);
         } catch (Exception e) {
-            System.out.println("ERROR: " + e);
+            Assert.fail("ERROR: " + e);
         }
 
         // Connect the elements
@@ -283,7 +306,7 @@ public class GraphDBAppContextTest {
             myApp.connectLStoLP(LS1, LP2);
             myApp.connectLStoLP(LS2, LP3);
         } catch (Exception e) {
-            System.out.println("ERROR: " + e);
+            Assert.fail("ERROR: " + e);
         }
 
         ArrayList<Object> actual = new ArrayList<>();
@@ -302,16 +325,22 @@ public class GraphDBAppContextTest {
             expected.add(LP3);
             for (Object item : bfs) {
                 actual.add(item);
-            } // expect: TN1.1, TN1.2, TN2.1, LP0.2, LP2.2, LS3.1, LP1.2, LS3.2, TZ0
+            }
         } catch (Exception e) {
-            System.out.println("ERROR: " + e);
+            Assert.fail("ERROR: " + e);
         }
-        Assert.assertEquals(expected, actual);
+
+        Assert.assertTrue(expected.size() == actual.size());
+        Assert.assertEquals(expected.get(0), actual.get(0));
+        Assert.assertTrue(actual.containsAll(expected));
+        for (int i = 1; i < 6; i++) {
+            Assert.assertTrue(actual.subList(1, 6).contains(expected.get(i)));
+        }
     }
 
     @Test
-    public void clearTestIntegers() {
-        GraphDBAppContext myApp = new GraphDBAppContext(runtime, "myIntegerGraph");
+    public void clearTestStrings() {
+        GraphDBAppContext myApp = new GraphDBAppContext(runtime, "myStringGraph");
 
         // Create the elements
         try {
@@ -320,7 +349,7 @@ public class GraphDBAppContextTest {
             myApp.getGraph().addNode("Namaste");
             myApp.getGraph().addNode("Hola");
         } catch (Exception e) {
-            System.out.println("ERROR: " + e);
+            Assert.fail("ERROR: " + e);
         }
 
         Assert.assertEquals(4, myApp.getGraph().getNumNodes());
@@ -353,7 +382,7 @@ public class GraphDBAppContextTest {
             LP2 = myApp.createLogicalPort(UUID.randomUUID(), "LP2", null, null, null);
             LP3 = myApp.createLogicalPort(UUID.randomUUID(), "LP3", null, null, null);
         } catch (Exception e) {
-            System.out.println("ERROR: " + e);
+            Assert.fail("ERROR: " + e);
         }
 
         // Connect the elements
@@ -367,7 +396,7 @@ public class GraphDBAppContextTest {
             myApp.connectLStoLP(LS1, LP2);
             myApp.connectLStoLP(LS2, LP3);
         } catch (Exception e) {
-            System.out.println("ERROR: " + e);
+            Assert.fail("ERROR: " + e);
         }
 
         Assert.assertEquals(9, myApp.getGraph().getNumNodes());
@@ -429,8 +458,10 @@ public class GraphDBAppContextTest {
         }
         try {
             Iterable<Object> ordered = myApp.getGraph().preDFS(objects.get(0));
+            int counter = 0;
             for (Object item : ordered) {
-                System.out.println(item);
+                Assert.assertEquals(item, "hello" + counter);
+                counter++;
             }
         } catch (Exception e) {
             Assert.fail("Error while performing preDFS/printing objects!");
@@ -461,7 +492,7 @@ public class GraphDBAppContextTest {
             LP2 = myApp.createLogicalPort(UUID.randomUUID(), "LP2", null, null, null);
             LP3 = myApp.createLogicalPort(UUID.randomUUID(), "LP3", null, null, null);
         } catch(Exception e) {
-            System.out.println("ERROR: " + e);
+            Assert.fail("ERROR: " + e);
         }
 
         // Connect the elements
@@ -475,7 +506,7 @@ public class GraphDBAppContextTest {
             myApp.connectLStoLP(LS1, LP2);
             myApp.connectLStoLP(LS2, LP3);
         } catch (Exception e) {
-            System.out.println("ERROR: " + e);
+            Assert.fail("ERROR: " + e);
         }
 
         Set<TransportNode> actual = myApp.queryTZtoTN(TZ1);
@@ -507,7 +538,7 @@ public class GraphDBAppContextTest {
     }
 
     @Test
-    public void bigTest() throws Exception {
+    public void bigTest() throws Exception { // Large, randomly-generated graph
         GraphDBAppContext myApp = new GraphDBAppContext(runtime, "myBigGraph");
         myApp.getGraph().clear();
         Set<UUID> existing = new HashSet<>();
@@ -526,7 +557,7 @@ public class GraphDBAppContextTest {
 
         // Create Transport Nodes
         Map<String, TransportNode> transportNodes = new HashMap<>();
-        for (int i = 1; i <= 40000; i++) {
+        for (int i = 1; i <= 4000; i++) {
             UUID newID = UUID.randomUUID();
             while (existing.contains(newID)) {
                 newID = UUID.randomUUID();
@@ -538,7 +569,7 @@ public class GraphDBAppContextTest {
 
         // Create Logical Switches
         Map<String, LogicalSwitch> logicalSwitches = new HashMap<>();
-        for (int i = 1; i <= 40000; i++) {
+        for (int i = 1; i <= 4000; i++) {
             UUID newID = UUID.randomUUID();
             while (existing.contains(newID)) {
                 newID = UUID.randomUUID();
@@ -550,7 +581,7 @@ public class GraphDBAppContextTest {
 
         // Create Logical Ports
         Map<String, LogicalPort> logicalPorts = new HashMap<>();
-        for (int i = 1; i <= 80000; i++) {
+        for (int i = 1; i <= 8000; i++) {
             UUID newID = UUID.randomUUID();
             while (existing.contains(newID)) {
                 newID = UUID.randomUUID();
@@ -607,215 +638,6 @@ public class GraphDBAppContextTest {
     }
 
     @Test
-    public void hardCodedTest() throws Exception {
-        GraphDBAppContext myApp = new GraphDBAppContext(runtime, "myBigGraph");
-        myApp.getGraph().clear();
-        Set<UUID> existing = new HashSet<>();
-
-        // Create Transport Zones
-        Map<String, TransportZone> transportZones = new HashMap<>();
-        for (int i = 1; i <= 10000; i++) {
-            UUID newID = UUID.randomUUID();
-            //while (existing.contains(newID)) {
-                //newID = UUID.randomUUID();
-            //}
-            TransportZone currTZ = myApp.createTransportZone(newID, "TransportZone" + i, null);
-            existing.add(newID);
-            transportZones.put("TransportZone" + i, currTZ);
-        }
-
-        // Create Transport Nodes
-        Map<String, TransportNode> transportNodes = new HashMap<>();
-        for (int i = 1; i <= 20000; i++) {
-            UUID newID = UUID.randomUUID();
-            //while (existing.contains(newID)) {
-                //newID = UUID.randomUUID();
-            //}
-            TransportNode currTN = myApp.createTransportNode(newID, "TransportNode" + i, null);
-            existing.add(newID);
-            transportNodes.put("TransportNode" + i, currTN);
-        }
-
-        // Create Logical Switches
-        Map<String, LogicalSwitch> logicalSwitches = new HashMap<>();
-        for (int i = 1; i <= 10000; i++) {
-            UUID newID = UUID.randomUUID();
-            //while (existing.contains(newID)) {
-                //newID = UUID.randomUUID();
-            //}
-            LogicalSwitch currLS = myApp.createLogicalSwitch(newID, "LogicalSwitch" + i, null, null);
-            existing.add(newID);
-            logicalSwitches.put("LogicalSwitch" + i, currLS);
-        }
-
-        // Create Logical Ports
-        Map<String, LogicalPort> logicalPorts = new HashMap<>();
-        for (int i = 1; i <= 20000; i++) {
-            UUID newID = UUID.randomUUID();
-            //while (existing.contains(newID)) {
-                //newID = UUID.randomUUID();
-            //}
-            LogicalPort currLP = myApp.createLogicalPort(newID, "LogicalPort" + i, null,
-                    null, null);
-            existing.add(newID);
-            logicalPorts.put("LogicalPort" + i, currLP);
-        }
-
-        // Connect TZ --> TN
-        for (int i = 1; i <= 10000; i++) {
-            myApp.connectTZtoTN(transportZones.get("TransportZone" + i), transportNodes.get("TransportNode" + i));
-            myApp.connectTZtoTN(transportZones.get("TransportZone" + i), transportNodes.get("TransportNode" + 2 * i));
-        }
-
-        // Connect TZ --> LS
-        for (int i = 1; i <= 10000; i++) {
-            myApp.connectTZtoLS(transportZones.get("TransportZone" + i), logicalSwitches.get("LogicalSwitch" + i));
-        }
-
-        // Connect LS --> LP
-        for (int i = 1; i <= 10000; i++) {
-            myApp.connectLStoLP(logicalSwitches.get("LogicalSwitch" + i), logicalPorts.get("LogicalPort" + i));
-            myApp.connectLStoLP(logicalSwitches.get("LogicalSwitch" + i), logicalPorts.get("LogicalPort" + 2 * i));
-        }
-
-        // Write
-        for (int i = 1; i <= 2500; i++) {
-            try {
-                LogicalSwitch temp = logicalSwitches.get("LS" + i);
-                myApp.getGraph().update(temp, new LogicalSwitch(UUID.randomUUID(), temp.getName(), temp.getProfiles(), temp.getProperties()));
-            } catch (Exception e) {
-                System.out.println("ERROR: " + e);
-                continue;
-            }
-        }
-
-        // Query
-        //myApp.queryTZtoLP(transportZones.get("TransportZone4576"));
-        System.out.println(myApp.getGraph().getNumNodes());
-    }
-
-    @Test
-    public void workload() throws Exception {
-        // CONSTRUCT GRAPH
-
-        GraphDBAppContext myApp = new GraphDBAppContext(runtime, "myWorkloadGraph");
-        myApp.getGraph().clear();
-        Set<UUID> existing = new HashSet<>();
-
-        // Create Transport Zones
-        Map<String, TransportZone> transportZones = new HashMap<>();
-        for (int i = 1; i <= 10000; i++) {
-            UUID newID = UUID.randomUUID();
-            while (existing.contains(newID)) {
-                newID = UUID.randomUUID();
-            }
-            TransportZone currTZ = myApp.createTransportZone(newID, "TZ" + i, null);
-            existing.add(newID);
-            transportZones.put("TZ" + i, currTZ);
-        }
-
-        // Create Transport Nodes
-        Map<String, TransportNode> transportNodes = new HashMap<>();
-        for (int i = 1; i <= 20000; i++) {
-            UUID newID = UUID.randomUUID();
-            while (existing.contains(newID)) {
-                newID = UUID.randomUUID();
-            }
-            TransportNode currTN = myApp.createTransportNode(newID, "TN" + i, null);
-            existing.add(newID);
-            transportNodes.put("TN" + i, currTN);
-        }
-
-        // Create Logical Switches
-        Map<String, LogicalSwitch> logicalSwitches = new HashMap<>();
-        for (int i = 1; i <= 10000; i++) {
-            UUID newID = UUID.randomUUID();
-            while (existing.contains(newID)) {
-                newID = UUID.randomUUID();
-            }
-            LogicalSwitch currLS = myApp.createLogicalSwitch(newID, "LS" + i, null, null);
-            existing.add(newID);
-            logicalSwitches.put("LS" + i, currLS);
-        }
-
-        // Create Logical Ports
-        Map<String, LogicalPort> logicalPorts = new HashMap<>();
-        for (int i = 1; i <= 20000; i++) {
-            UUID newID = UUID.randomUUID();
-            while (existing.contains(newID)) {
-                newID = UUID.randomUUID();
-            }
-            LogicalPort currLP = myApp.createLogicalPort(newID, "LS" + i, null,
-                    null, null);
-            existing.add(newID);
-            logicalPorts.put("LP" + i, currLP);
-        }
-
-        // Randomize connections
-        Random rand = new Random();
-        int min = 1;
-        int max;
-
-
-        // Connect LS --> LP
-        for (int i = 1; i <= logicalPorts.size(); i++) {
-            max = logicalSwitches.size();
-            for (int j = 0; j < 3; j++) {
-                int randomNum = rand.nextInt((max - min) + 1) + min;
-                try {
-                    myApp.connectLStoLP(logicalSwitches.get("LS" + randomNum), logicalPorts.get("LP" + i));
-                } catch (Exception e) {
-                    continue;
-                }
-            }
-        }
-
-        // Connect TZ --> LS
-        for (int i = 1; i <= logicalSwitches.size(); i++) {
-            max = transportZones.size();
-            int randomNum = rand.nextInt((max - min) + 1) + min;
-            myApp.connectTZtoLS(transportZones.get("TZ" + randomNum), logicalSwitches.get("LS" + i));
-        }
-
-        // Connect TZ --> TN
-        for (int i = 1; i <= transportNodes.size(); i++) {
-            max = transportZones.size();
-            for (int j = 0; j < 5; j++) {
-                int randomNum = rand.nextInt((max - min) + 1) + min;
-                try {
-                    myApp.connectTZtoTN(transportZones.get("TZ" + randomNum), transportNodes.get("TN" + i));
-                } catch (Exception e) {
-                    continue;
-                }
-            }
-        }
-
-//        // WRITE
-//        for (int i = 1; i <= 2500; i++) {
-//            max = logicalSwitches.size();
-//            for (int j = 0; j < 3; j++) {
-//                int randomNum = rand.nextInt((max - min) + 1) + min;
-//                try {
-//                    myApp.getGraph().update(logicalSwitches.get("LS" + randomNum));
-//                } catch (Exception e) {
-//                    continue;
-//                }
-//            }
-//        }
-
-        // READ
-        for (int i = 1; i <= 10000; i++) {
-            max = transportZones.size();
-            int randomNum = rand.nextInt((max - min) + 1) + min;
-            try {
-                myApp.queryTZtoLS(transportZones.get("TZ" + randomNum));
-            } catch (Exception e) {
-                continue;
-            }
-        }
-    }
-
-    @Test
     public void threaded() throws Exception {
         GraphDBAppContext myApp = new GraphDBAppContext(runtime, "myThreadGraph");
         // Create the elements
@@ -838,7 +660,7 @@ public class GraphDBAppContextTest {
             LP2 = myApp.createLogicalPort(UUID.randomUUID(), "LP2", null, null, null);
             LP3 = myApp.createLogicalPort(UUID.randomUUID(), "LP3", null, null, null);
         } catch(Exception e) {
-            System.out.println("ERROR: " + e);
+            Assert.fail("ERROR: " + e);
         }
 
         // Connect the elements
@@ -852,7 +674,7 @@ public class GraphDBAppContextTest {
             myApp.connectLStoLP(LS1, LP2);
             myApp.connectLStoLP(LS2, LP3);
         } catch (Exception e) {
-            System.out.println("ERROR: " + e);
+            Assert.fail("ERROR: " + e);
         }
 
         // Multithreading

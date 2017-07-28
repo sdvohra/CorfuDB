@@ -3,6 +3,7 @@ package org.corfudb.runtime.collections.graphdb;
 import org.corfudb.runtime.CorfuRuntime;
 import org.corfudb.runtime.collections.SMRMap;
 
+import java.lang.reflect.Array;
 import java.util.*;
 
 /**
@@ -36,10 +37,10 @@ public class GraphDB implements Graph {
         // Error Handling
         Node objNode = new Node(obj);
         if (getNode(objNode.getID()) != null) {
-            if (getNode(objNode.getID()).equals(obj)) {
+            if (getNode(objNode.getID()).getValue().equals(obj)) {
                 throw new NodeAlreadyExistsException();
             } else {
-                System.out.println("NAE ERROR");
+                System.out.println("ID Collision!");
             }
         }
 
@@ -154,96 +155,94 @@ public class GraphDB implements Graph {
 
     @Override
     public Iterable<Object> preDFS(Object obj) throws NodeDoesNotExistException {
-//        Node objNode = new Node(obj);
-//        Integer firstID = objNode.getID();
-//
-//        // Error Handling
-//        if (getNode(firstID) == null) {
-//            throw new NodeDoesNotExistException();
-//        }
-//
-//        HashSet<Object> returnVal = new ArrayList<>();
-//
-//        Stack<Integer> stack = new Stack(); // IDs to visit
-//        stack.add(firstID);
-//
-//        HashSet<Integer> visited = new HashSet<>(); // IDs visited
-//        visited.add(firstID);
-//
-//        while (!stack.isEmpty()) {
-//            Integer elementID = stack.pop();
-//            returnVal.add(getNode(elementID).getValue());
-//
-//            Set<Integer> neighbors = getNode(elementID).getOutward();
-//            for (Integer neighbor : neighbors) {
-//                if (neighbor != null && !visited.contains(neighbor)) {
-//                    stack.add(neighbor);
-//                    visited.add(neighbor);
-//                }
-//            }
-//        }
-//        return returnVal;
-        return null;
+        Node objNode = new Node(obj);
+        Integer firstID = objNode.getID();
+
+        // Error Handling
+        if (getNode(firstID) == null) {
+            throw new NodeDoesNotExistException();
+        }
+
+        ArrayList<Object> returnVal = new ArrayList<>();
+
+        Stack<Integer> stack = new Stack(); // IDs to visit
+        stack.add(firstID);
+
+        HashSet<Integer> visited = new HashSet<>(); // IDs visited
+        visited.add(firstID);
+
+        while (!stack.isEmpty()) {
+            Integer elementID = stack.pop();
+            returnVal.add(getNode(elementID).getValue());
+
+            Set<Integer> neighbors = getNode(elementID).getOutward();
+            for (Integer neighbor : neighbors) {
+                if (neighbor != null && !visited.contains(neighbor)) {
+                    stack.add(neighbor);
+                    visited.add(neighbor);
+                }
+            }
+        }
+        return returnVal;
     }
 
     @Override
     public Iterable<Object> postDFS(Object obj) throws NodeDoesNotExistException {
-//        Node objNode = new Node(obj);
-//        Integer firstID = objNode.getID();
-//
-//        // Error Handling
-//        if (getNode(firstID) == null) {
-//            throw new NodeDoesNotExistException();
-//        }
-//
-//        HashSet<Object> returnVal = new ArrayList<>();
-//
-//        Stack<Integer> stack = new Stack(); // IDs to visit
-//        stack.add(firstID);
-//
-//        HashSet<Integer> visited = new HashSet<>(); // IDs visited
-//        visited.add(firstID);
-//
-//        while (!stack.isEmpty()) {
-//            Integer elementID = stack.pop();
-//            returnVal.add(0, getNode(elementID).getValue());
-//
-//            List<Integer> neighbors = getNode(elementID).getOutward();
-//            for (int i = 0; i < neighbors.size(); i++) {
-//                Integer neighbor = neighbors.get(i);
-//                if (neighbor != null && !visited.contains(neighbor)) {
-//                    stack.add(neighbor);
-//                    visited.add(neighbor);
-//                }
-//            }
-//        }
-//        return returnVal;
-        return null;
+        Node objNode = new Node(obj);
+        Integer firstID = objNode.getID();
+
+        // Error Handling
+        if (getNode(firstID) == null) {
+            throw new NodeDoesNotExistException();
+        }
+
+        ArrayList<Object> returnVal = new ArrayList<>();
+
+        Stack<Integer> stack = new Stack(); // IDs to visit
+        stack.add(firstID);
+
+        HashSet<Integer> visited = new HashSet<>(); // IDs visited
+        visited.add(firstID);
+
+        while (!stack.isEmpty()) {
+            Integer elementID = stack.pop();
+            returnVal.add(0, getNode(elementID).getValue());
+
+            ArrayList<Integer> neighbors = new ArrayList<>();
+            neighbors.addAll(getNode(elementID).getOutward());
+            for (int i = 0; i < neighbors.size(); i++) {
+                Integer neighbor = neighbors.get(i);
+                if (neighbor != null && !visited.contains(neighbor)) {
+                    stack.add(neighbor);
+                    visited.add(neighbor);
+                }
+            }
+        }
+        return returnVal;
     }
 
     @Override
     public Iterable<Object> BFS(Object obj) throws NodeDoesNotExistException {
-//        Node objNode = new Node(obj);
-//        Integer firstID = objNode.getID();
-//
-//        // Error Handling
-//        if (getNode(firstID) == null) {
-//            throw new NodeDoesNotExistException();
-//        }
-//
-//        ArrayList<Object> ordered = new ArrayList<>();
-//        ArrayList<Integer> fringe = new ArrayList<>();
-//        fringe.add(firstID);
-//        while (fringe.size() != 0) {
-//            Integer curr = fringe.remove(0);
-//            if (!ordered.contains(getNode(curr).getValue())) {
-//                ordered.add(getNode(curr).getValue());
-//                for (Integer neighbor : getNode(curr).getOutward()) {
-//                    fringe.add(neighbor);
-//                }
-//            }
-//        }
-//        return ordered;
-        return null;
+        Node objNode = new Node(obj);
+        Integer firstID = objNode.getID();
+
+        // Error Handling
+        if (getNode(firstID) == null) {
+            throw new NodeDoesNotExistException();
+        }
+
+        ArrayList<Object> ordered = new ArrayList<>();
+        ArrayList<Integer> fringe = new ArrayList<>();
+        fringe.add(firstID);
+        while (fringe.size() != 0) {
+            Integer curr = fringe.remove(0);
+            if (!ordered.contains(getNode(curr).getValue())) {
+                ordered.add(getNode(curr).getValue());
+                for (Integer neighbor : getNode(curr).getOutward()) {
+                    fringe.add(neighbor);
+                }
+            }
+        }
+        return ordered;
     }
 }
