@@ -10,6 +10,9 @@ import java.util.*;
  * Implements Graph. Uses internal maps to represent
  * a directed graph.
  *
+ * Used for performance tests. Not very clean code -
+ * should be retired.
+ *
  * @author shriyav
  */
 
@@ -55,7 +58,25 @@ public class MapsGraphDB {
         return "This graph has " + getNumNodes() + " nodes.";
     }
 
-    //public Map<Integer, Node> getNodes() { return nodes; }
+    public Map<UUID, TransportZone> getTransportZones() {
+        return transportZones;
+    }
+
+    public Map<UUID, TransportNode> getTransportNodes() {
+        return transportNodes;
+    }
+
+    public Map<UUID, LogicalSwitch> getLogicalSwitches() {
+        return logicalSwitches;
+    }
+
+    public Map<UUID, LogicalPort> getLogicalPorts() {
+        return logicalPorts;
+    }
+
+    public Map<Integer, Edge> getEdges() {
+        return edges;
+    }
 
     public void addNode(Component obj) throws NodeAlreadyExistsException {
         if (obj instanceof TransportZone) {
@@ -248,65 +269,11 @@ public class MapsGraphDB {
         edges.remove(tempEdge.hashCode());
     }
 
-    //@Override
     public void clear() {
         transportZones.clear();
         transportNodes.clear();
         logicalSwitches.clear();
         logicalPorts.clear();
         edges.clear();
-    }
-
-    public Set<TransportNode> queryTZtoTN(TransportZone tz) {
-        Set<TransportNode> TNs = new HashSet<>();
-
-        for (Edge e : edges.values()) {
-            if (e.getFrom().equals(tz) && (e.getTo() instanceof TransportNode)) {
-                TNs.add((TransportNode) e.getTo());
-            }
-        }
-        return TNs;
-    }
-
-    public Set<LogicalSwitch> queryTZtoLS(TransportZone tz) {
-        Set<LogicalSwitch> LSs = new HashSet<>();
-
-        for (Edge e : edges.values()) {
-            if (e.getFrom().equals(tz) && (e.getTo() instanceof LogicalSwitch)) {
-                LSs.add((LogicalSwitch) e.getTo());
-            }
-        }
-        return LSs;
-    }
-
-    public Set<LogicalPort> queryLStoLP(LogicalSwitch ls) {
-        Set<LogicalPort> LPs = new HashSet<>();
-
-        for (Edge e : edges.values()) {
-            if (e.getFrom().equals(ls) && (e.getTo() instanceof LogicalPort)) {
-                LPs.add((LogicalPort) e.getTo());
-            }
-        }
-        return LPs;
-    }
-
-    public Set<LogicalPort> queryTZtoLP(TransportZone tz) {
-        Set<LogicalPort> LPs = new HashSet<>();
-        Set<LogicalSwitch> LSs = queryTZtoLS(tz);
-        for (LogicalSwitch ls : LSs) {
-            LPs.addAll(queryLStoLP(ls));
-        }
-        return LPs;
-    }
-
-    public Set<TransportZone> queryTNtoTZ(TransportNode tn) {
-        Set<TransportZone> TZs = new HashSet<>();
-
-        for (Edge e : edges.values()) {
-            if (e.getFrom().equals(tn) && (e.getTo() instanceof TransportZone)) {
-                TZs.add((TransportZone) e.getTo());
-            }
-        }
-        return TZs;
     }
 }

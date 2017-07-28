@@ -11,7 +11,7 @@ import java.util.*;
  *
  * @author shriyav
  */
-public class MapsAppContext extends AbstractViewTest {
+public class MapsAppContext extends AbstractViewTest implements AppContext {
     MapsGraphDB graph;
 
     public MapsAppContext(CorfuRuntime rt, String graphName) {
@@ -22,7 +22,7 @@ public class MapsAppContext extends AbstractViewTest {
         return graph;
     }
 
-    //@Override
+    @Override
     public TransportZone createTransportZone(UUID uuid, String name, Map<String, String> props)
             throws NodeAlreadyExistsException {
         TransportZone tz = new TransportZone(uuid, name, props);
@@ -30,7 +30,7 @@ public class MapsAppContext extends AbstractViewTest {
         return tz;
     }
 
-    //@Override
+    @Override
     public TransportNode createTransportNode(UUID uuid, String name, Map<String, Object> props)
             throws NodeAlreadyExistsException {
         TransportNode tn = new TransportNode(uuid, name, props);
@@ -38,7 +38,7 @@ public class MapsAppContext extends AbstractViewTest {
         return tn;
     }
 
-    //@Override
+    @Override
     public LogicalSwitch createLogicalSwitch(UUID uuid, String name, List<UUID> profs, Map<String, Object> props)
             throws NodeAlreadyExistsException {
         LogicalSwitch ls = new LogicalSwitch(uuid, name, profs, props);
@@ -46,7 +46,7 @@ public class MapsAppContext extends AbstractViewTest {
         return ls;
     }
 
-    //@Override
+    @Override
     public LogicalPort createLogicalPort(UUID uuid, String name, Attachment attachment, List<UUID> profs,
                                          Map<String, Object> props) throws NodeAlreadyExistsException {
         LogicalPort lp = new LogicalPort(uuid, name, attachment, profs, props);
@@ -54,34 +54,71 @@ public class MapsAppContext extends AbstractViewTest {
         return lp;
     }
 
-    //@Override
+    @Override
     public void connectTZtoTN(TransportZone tz, TransportNode tn) throws Exception {
         graph.connect(tz, tn);
     }
 
-    //@Override
+    @Override
     public void connectTZtoLS(TransportZone tz, LogicalSwitch ls) throws Exception {
         graph.connect(tz, ls);
     }
 
-    //@Override
+    @Override
     public void connectLStoLP(LogicalSwitch ls, LogicalPort lp) throws Exception {
         graph.connect(ls, lp);
     }
 
-    public Set<TransportNode> query1(TransportZone tz) {
-        return graph.queryTZtoTN(tz);
+    public Set<TransportNode> queryTZtoTN(TransportZone tz) {
+        Set<TransportNode> TNs = new HashSet<>();
+
+        for (Edge e : graph.getEdges().values()) {
+            if (e.getFrom().equals(tz) && (e.getTo() instanceof TransportNode)) {
+                TNs.add((TransportNode) e.getTo());
+            }
+        }
+        return TNs;
     }
 
-    public Set<LogicalSwitch> query2(TransportZone tz) {
-        return graph.queryTZtoLS(tz);
+    public Set<LogicalSwitch> queryTZtoLS(TransportZone tz) {
+        Set<LogicalSwitch> LSs = new HashSet<>();
+
+        for (Edge e : graph.getEdges().values()) {
+            if (e.getFrom().equals(tz) && (e.getTo() instanceof LogicalSwitch)) {
+                LSs.add((LogicalSwitch) e.getTo());
+            }
+        }
+        return LSs;
     }
 
-    public Set<LogicalPort> query3(LogicalSwitch ls) {
-        return graph.queryLStoLP(ls);
+    public Set<LogicalPort> queryLStoLP(LogicalSwitch ls) {
+        Set<LogicalPort> LPs = new HashSet<>();
+
+        for (Edge e : graph.getEdges().values()) {
+            if (e.getFrom().equals(ls) && (e.getTo() instanceof LogicalPort)) {
+                LPs.add((LogicalPort) e.getTo());
+            }
+        }
+        return LPs;
     }
 
-    public Set<LogicalPort> query4(TransportZone tz) {
-        return graph.queryTZtoLP(tz);
+    public Set<LogicalPort> queryTZtoLP(TransportZone tz) {
+        Set<LogicalPort> LPs = new HashSet<>();
+        Set<LogicalSwitch> LSs = queryTZtoLS(tz);
+        for (LogicalSwitch ls : LSs) {
+            LPs.addAll(queryLStoLP(ls));
+        }
+        return LPs;
+    }
+
+    public Set<TransportZone> queryTNtoTZ(TransportNode tn) {
+        Set<TransportZone> TZs = new HashSet<>();
+
+        for (Edge e : graph.getEdges().values()) {
+            if (e.getFrom().equals(tn) && (e.getTo() instanceof TransportZone)) {
+                TZs.add((TransportZone) e.getTo());
+            }
+        }
+        return TZs;
     }
 }

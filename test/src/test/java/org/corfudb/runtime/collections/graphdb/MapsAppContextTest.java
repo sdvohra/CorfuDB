@@ -15,6 +15,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * Creates a MapsAppContext and verifies that methods work as expected.
  *
+ * This class was created for the purpose of running performance tests
+ * to compare with the GraphDB. The code is not well-maintained, however,
+ * and should be retired.
+ *
  * @author shriyav
  */
 public class MapsAppContextTest {
@@ -82,7 +86,7 @@ public class MapsAppContextTest {
             LP2 = myApp.createLogicalPort(UUID.randomUUID(), "LP2", null, null, null);
             LP3 = myApp.createLogicalPort(UUID.randomUUID(), "LP3", null, null, null);
         } catch(Exception e) {
-            System.out.println("ERROR: " + e);
+            Assert.fail("ERROR: " + e);
         }
 
         // Connect the elements
@@ -96,36 +100,35 @@ public class MapsAppContextTest {
             myApp.connectLStoLP(LS1, LP2);
             myApp.connectLStoLP(LS2, LP3);
         } catch (Exception e) {
-            System.out.println("ERROR: " + e);
+            Assert.fail("ERROR: " + e);
         }
 
-        Set<TransportNode> actual = myApp.query1(TZ1);
+        Set<TransportNode> actual = myApp.queryTZtoTN(TZ1);
         Set<TransportNode> expected = new HashSet<>();
         expected.add(TN1);
         expected.add(TN2);
         expected.add(TN3);
         Assert.assertEquals(expected, actual);
 
-        Set<LogicalSwitch> actualLS = myApp.query2(TZ1);
+        Set<LogicalSwitch> actualLS = myApp.queryTZtoLS(TZ1);
         Set<LogicalSwitch> expectedLS = new HashSet<>();
         expectedLS.add(LS1);
         expectedLS.add(LS2);
         Assert.assertEquals(expectedLS, actualLS);
 
-        Set<LogicalPort> actualLP = myApp.query3(LS1);
+        Set<LogicalPort> actualLP = myApp.queryLStoLP(LS1);
         Set<LogicalPort> expectedLP = new HashSet<>();
         expectedLP.add(LP1);
         expectedLP.add(LP2);
         Assert.assertEquals(expectedLP, actualLP);
 
-        Set<LogicalPort> actual4 = myApp.query4(TZ1);
+        Set<LogicalPort> actual4 = myApp.queryTZtoLP(TZ1);
         Set<LogicalPort> expected4 = new HashSet<>();
         expected4.add(LP1);
         expected4.add(LP2);
         Assert.assertNotEquals(expected4, actual4);
         expected4.add(LP3);
         Assert.assertEquals(expected4, actual4);
-
     }
 
     @Test
@@ -260,7 +263,7 @@ public class MapsAppContextTest {
         // Query
         max = transportZones.size();
         int randomNum = rand.nextInt((max - min) + 1) + min;
-        System.out.println(myApp.query4(transportZones.get("TZ" + randomNum)).size());
+        System.out.println(myApp.queryTZtoLP(transportZones.get("TZ" + randomNum)).size());
     }
 
     @Test
@@ -448,27 +451,12 @@ public class MapsAppContextTest {
             }
         }
 
-//        // WRITE
-//        for (int i = 1; i <= 2500; i++) {
-//            max = logicalSwitches.size();
-//            for (int j = 0; j < 3; j++) {
-//                int randomNum = rand.nextInt((max - min) + 1) + min;
-//                try {
-//                    LogicalSwitch temp = logicalSwitches.get("LS" + randomNum);
-//                    temp.setId(UUID.randomUUID());
-//                    myApp.getGraph().update(temp);
-//                } catch (Exception e) {
-//                    continue;
-//                }
-//            }
-//        }
-
         // READ
         for (int i = 1; i <= 10000; i++) {
             max = transportZones.size();
             int randomNum = rand.nextInt((max - min) + 1) + min;
             try {
-                myApp.query2(transportZones.get("TZ" + randomNum));
+                myApp.queryTZtoLS(transportZones.get("TZ" + randomNum));
             } catch (Exception e) {
                 continue;
             }
