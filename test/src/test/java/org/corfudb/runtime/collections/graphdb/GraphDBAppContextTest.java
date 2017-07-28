@@ -382,7 +382,7 @@ public class GraphDBAppContextTest {
         TransportZone TZ1 = myApp.createTransportZone(UUID.randomUUID(), "TZ1", null);
         String dangerous = "NotInGraph";
 
-        assertThatThrownBy(() -> myApp.getGraph().update(dangerous))
+        assertThatThrownBy(() -> myApp.getGraph().update(dangerous, ""))
                 .isInstanceOf(NodeDoesNotExistException.class);
 
         assertThatThrownBy(() -> myApp.getGraph().removeNode(dangerous))
@@ -678,8 +678,229 @@ public class GraphDBAppContextTest {
             myApp.connectLStoLP(logicalSwitches.get("LogicalSwitch" + i), logicalPorts.get("LogicalPort" + 2 * i));
         }
 
+        // Write
+        for (int i = 1; i <= 2500; i++) {
+            try {
+                LogicalSwitch temp = logicalSwitches.get("LS" + i);
+                myApp.getGraph().update(temp, new LogicalSwitch(UUID.randomUUID(), temp.getName(), temp.getProfiles(), temp.getProperties()));
+            } catch (Exception e) {
+                System.out.println("ERROR: " + e);
+                continue;
+            }
+        }
+
         // Query
-        myApp.queryTZtoLP(transportZones.get("TransportZone4576"));
+        //myApp.queryTZtoLP(transportZones.get("TransportZone4576"));
         System.out.println(myApp.getGraph().getNumNodes());
+    }
+
+    @Test
+    public void workload() throws Exception {
+        // CONSTRUCT GRAPH
+
+        GraphDBAppContext myApp = new GraphDBAppContext(runtime, "myWorkloadGraph");
+        myApp.getGraph().clear();
+        Set<UUID> existing = new HashSet<>();
+
+        // Create Transport Zones
+        Map<String, TransportZone> transportZones = new HashMap<>();
+        for (int i = 1; i <= 10000; i++) {
+            UUID newID = UUID.randomUUID();
+            while (existing.contains(newID)) {
+                newID = UUID.randomUUID();
+            }
+            TransportZone currTZ = myApp.createTransportZone(newID, "TZ" + i, null);
+            existing.add(newID);
+            transportZones.put("TZ" + i, currTZ);
+        }
+
+        // Create Transport Nodes
+        Map<String, TransportNode> transportNodes = new HashMap<>();
+        for (int i = 1; i <= 20000; i++) {
+            UUID newID = UUID.randomUUID();
+            while (existing.contains(newID)) {
+                newID = UUID.randomUUID();
+            }
+            TransportNode currTN = myApp.createTransportNode(newID, "TN" + i, null);
+            existing.add(newID);
+            transportNodes.put("TN" + i, currTN);
+        }
+
+        // Create Logical Switches
+        Map<String, LogicalSwitch> logicalSwitches = new HashMap<>();
+        for (int i = 1; i <= 10000; i++) {
+            UUID newID = UUID.randomUUID();
+            while (existing.contains(newID)) {
+                newID = UUID.randomUUID();
+            }
+            LogicalSwitch currLS = myApp.createLogicalSwitch(newID, "LS" + i, null, null);
+            existing.add(newID);
+            logicalSwitches.put("LS" + i, currLS);
+        }
+
+        // Create Logical Ports
+        Map<String, LogicalPort> logicalPorts = new HashMap<>();
+        for (int i = 1; i <= 20000; i++) {
+            UUID newID = UUID.randomUUID();
+            while (existing.contains(newID)) {
+                newID = UUID.randomUUID();
+            }
+            LogicalPort currLP = myApp.createLogicalPort(newID, "LS" + i, null,
+                    null, null);
+            existing.add(newID);
+            logicalPorts.put("LP" + i, currLP);
+        }
+
+        // Randomize connections
+        Random rand = new Random();
+        int min = 1;
+        int max;
+
+
+        // Connect LS --> LP
+        for (int i = 1; i <= logicalPorts.size(); i++) {
+            max = logicalSwitches.size();
+            for (int j = 0; j < 3; j++) {
+                int randomNum = rand.nextInt((max - min) + 1) + min;
+                try {
+                    myApp.connectLStoLP(logicalSwitches.get("LS" + randomNum), logicalPorts.get("LP" + i));
+                } catch (Exception e) {
+                    continue;
+                }
+            }
+        }
+
+        // Connect TZ --> LS
+        for (int i = 1; i <= logicalSwitches.size(); i++) {
+            max = transportZones.size();
+            int randomNum = rand.nextInt((max - min) + 1) + min;
+            myApp.connectTZtoLS(transportZones.get("TZ" + randomNum), logicalSwitches.get("LS" + i));
+        }
+
+        // Connect TZ --> TN
+        for (int i = 1; i <= transportNodes.size(); i++) {
+            max = transportZones.size();
+            for (int j = 0; j < 5; j++) {
+                int randomNum = rand.nextInt((max - min) + 1) + min;
+                try {
+                    myApp.connectTZtoTN(transportZones.get("TZ" + randomNum), transportNodes.get("TN" + i));
+                } catch (Exception e) {
+                    continue;
+                }
+            }
+        }
+
+//        // WRITE
+//        for (int i = 1; i <= 2500; i++) {
+//            max = logicalSwitches.size();
+//            for (int j = 0; j < 3; j++) {
+//                int randomNum = rand.nextInt((max - min) + 1) + min;
+//                try {
+//                    myApp.getGraph().update(logicalSwitches.get("LS" + randomNum));
+//                } catch (Exception e) {
+//                    continue;
+//                }
+//            }
+//        }
+
+        // READ
+        for (int i = 1; i <= 10000; i++) {
+            max = transportZones.size();
+            int randomNum = rand.nextInt((max - min) + 1) + min;
+            try {
+                myApp.queryTZtoLS(transportZones.get("TZ" + randomNum));
+            } catch (Exception e) {
+                continue;
+            }
+        }
+    }
+
+    @Test
+    public void threaded() throws Exception {
+        GraphDBAppContext myApp = new GraphDBAppContext(runtime, "myThreadGraph");
+        // Create the elements
+        final TransportZone TZ1 = myApp.createTransportZone(UUID.randomUUID(), "TZ1", null);
+        TransportNode TN1 = null, TN2 = null, TN3 = null;
+        LogicalSwitch LS1 = null, LS2 = null;
+        LogicalPort LP1 = null, LP2 = null, LP3 = null;
+        try {
+            // Create Transport Zone
+            //TZ1 = myApp.createTransportZone(UUID.randomUUID(), "TZ1", null);
+            // Create Transport Nodes
+            TN1 = myApp.createTransportNode(UUID.randomUUID(), "TN1", null);
+            TN2 = myApp.createTransportNode(UUID.randomUUID(), "TN2", null);
+            TN3 = myApp.createTransportNode(UUID.randomUUID(), "TN3", null);
+            // Create Logical Switches
+            LS1 = myApp.createLogicalSwitch(UUID.randomUUID(), "LS1", null, null);
+            LS2 = myApp.createLogicalSwitch(UUID.randomUUID(), "LS2", null, null);
+            // Create Logical Ports
+            LP1 = myApp.createLogicalPort(UUID.randomUUID(), "LP1", null, null, null);
+            LP2 = myApp.createLogicalPort(UUID.randomUUID(), "LP2", null, null, null);
+            LP3 = myApp.createLogicalPort(UUID.randomUUID(), "LP3", null, null, null);
+        } catch(Exception e) {
+            System.out.println("ERROR: " + e);
+        }
+
+        // Connect the elements
+        try {
+            myApp.connectTZtoTN(TZ1, TN1);
+            myApp.connectTZtoTN(TZ1, TN2);
+            myApp.connectTZtoTN(TZ1, TN3);
+            myApp.connectTZtoLS(TZ1, LS1);
+            myApp.connectTZtoLS(TZ1, LS2);
+            myApp.connectLStoLP(LS1, LP1);
+            myApp.connectLStoLP(LS1, LP2);
+            myApp.connectLStoLP(LS2, LP3);
+        } catch (Exception e) {
+            System.out.println("ERROR: " + e);
+        }
+
+        // Multithreading
+        Thread t1 = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    System.out.println("Started t1");
+                    myApp.getGraph().BFS(TZ1);
+                    Thread.sleep(2000);
+                    System.out.println("Completed t1");
+                } catch (Exception e) {
+                    System.out.println("ERROR: " + e);
+                }
+            }
+        });
+        t1.start();
+
+        Thread t2 = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    System.out.println("Started t2");
+                    myApp.getGraph().preDFS(TZ1);
+                    Thread.sleep(1000);
+                    System.out.println("Completed t2");
+                } catch (Exception e) {
+                    System.out.println("ERROR: " + e);
+                }
+            }
+        });
+        t2.start();
+
+        Thread t3 = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    System.out.println("Started t3");
+                    myApp.getGraph().postDFS(TZ1);
+                    System.out.println("Completed t3");
+                } catch (Exception e) {
+                    System.out.println("ERROR: " + e);
+                }
+            }
+        });
+        t3.start();
+        t1.join();
+        t2.join();
+        t3.join();
     }
 }

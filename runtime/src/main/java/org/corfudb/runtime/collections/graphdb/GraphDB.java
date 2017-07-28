@@ -53,14 +53,16 @@ public class GraphDB implements Graph {
         return tempObj.getID();
     }
 
-    public void update(Object obj) throws NodeDoesNotExistException {
+    public void update(Object objOld, Object objNew) throws NodeDoesNotExistException {
         // Error Handling
-        Node objNode = new Node(obj);
-        if (getNode(objNode.getID()) == null) {
+        Node objNodeOld = new Node(objOld);
+        if (getNode(objNodeOld.getID()) == null) {
             throw new NodeDoesNotExistException();
         }
+        Node objNodeNew = new Node(objNew);
 
-        nodes.put(objNode.getID(), objNode);
+        nodes.remove(objNodeOld.getID());
+        nodes.put(objNodeNew.getID(), objNodeNew);
     }
 
     public void removeNode(Object obj) throws NodeDoesNotExistException {

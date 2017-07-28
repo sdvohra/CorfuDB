@@ -129,13 +129,13 @@ public class MapsAppContextTest {
     }
 
     @Test
-    public void errorTest() throws NodeDoesNotExistException, NodeAlreadyExistsException {
+    public void errorTest() throws NodeDoesNotExistException, NodeAlreadyExistsException { // this test is wrong!!!!!
         GraphDBAppContext myApp = new GraphDBAppContext(runtime, "myErrorGraph");
         // Create Transport Zone
         TransportZone TZ1 = myApp.createTransportZone(UUID.randomUUID(), "TZ1", null);
         String dangerous = "NotInGraph";
 
-        assertThatThrownBy(() -> myApp.getGraph().update(dangerous))
+        assertThatThrownBy(() -> myApp.getGraph().update(dangerous, ""))
                 .isInstanceOf(NodeDoesNotExistException.class);
 
         assertThatThrownBy(() -> myApp.getGraph().removeNode(dangerous))
@@ -335,8 +335,143 @@ public class MapsAppContextTest {
             myApp.connectLStoLP(logicalSwitches.get("LS" + i), logicalPorts.get("LP" + 2 * i));
         }
 
+        // Write
+        for (int i = 1; i <= 2500; i++) {
+            try {
+                LogicalSwitch temp = logicalSwitches.get("LS" + i);
+                temp.setId(UUID.randomUUID());
+                myApp.getGraph().update(temp);
+            } catch (Exception e) {
+                System.out.println("ERROR: " + e);
+                continue;
+            }
+        }
+
         // Query
-        myApp.query4(transportZones.get("TZ4576"));
+        //myApp.query4(transportZones.get("TZ4576"));
         System.out.println(myApp.getGraph().getNumNodes());
+    }
+
+    @Test
+    public void workload() throws Exception {
+        // CONSTRUCT GRAPH
+
+        MapsAppContext myApp = new MapsAppContext(runtime, "myWorkloadGraph");
+        myApp.getGraph().clear();
+        Set<UUID> existing = new HashSet<>();
+
+        // Create Transport Zones
+        Map<String, TransportZone> transportZones = new HashMap<>();
+        for (int i = 1; i <= 10000; i++) {
+            UUID newID = UUID.randomUUID();
+            while (existing.contains(newID)) {
+                newID = UUID.randomUUID();
+            }
+            TransportZone currTZ = myApp.createTransportZone(newID, "TZ" + i, null);
+            existing.add(newID);
+            transportZones.put("TZ" + i, currTZ);
+        }
+
+        // Create Transport Nodes
+        Map<String, TransportNode> transportNodes = new HashMap<>();
+        for (int i = 1; i <= 20000; i++) {
+            UUID newID = UUID.randomUUID();
+            while (existing.contains(newID)) {
+                newID = UUID.randomUUID();
+            }
+            TransportNode currTN = myApp.createTransportNode(newID, "TN" + i, null);
+            existing.add(newID);
+            transportNodes.put("TN" + i, currTN);
+        }
+
+        // Create Logical Switches
+        Map<String, LogicalSwitch> logicalSwitches = new HashMap<>();
+        for (int i = 1; i <= 10000; i++) {
+            UUID newID = UUID.randomUUID();
+            while (existing.contains(newID)) {
+                newID = UUID.randomUUID();
+            }
+            LogicalSwitch currLS = myApp.createLogicalSwitch(newID, "LS" + i, null, null);
+            existing.add(newID);
+            logicalSwitches.put("LS" + i, currLS);
+        }
+
+        // Create Logical Ports
+        Map<String, LogicalPort> logicalPorts = new HashMap<>();
+        for (int i = 1; i <= 20000; i++) {
+            UUID newID = UUID.randomUUID();
+            while (existing.contains(newID)) {
+                newID = UUID.randomUUID();
+            }
+            LogicalPort currLP = myApp.createLogicalPort(newID, "LS" + i, null,
+                    null, null);
+            existing.add(newID);
+            logicalPorts.put("LP" + i, currLP);
+        }
+
+        // Randomize connections
+        Random rand = new Random();
+        int min = 1;
+        int max;
+
+
+        // Connect LS --> LP
+        for (int i = 1; i <= logicalPorts.size(); i++) {
+            max = logicalSwitches.size();
+            for (int j = 0; j < 3; j++) {
+                int randomNum = rand.nextInt((max - min) + 1) + min;
+                try {
+                    myApp.connectLStoLP(logicalSwitches.get("LS" + randomNum), logicalPorts.get("LP" + i));
+                } catch (Exception e) {
+                    continue;
+                }
+            }
+        }
+
+        // Connect TZ --> LS
+        for (int i = 1; i <= logicalSwitches.size(); i++) {
+            max = transportZones.size();
+            int randomNum = rand.nextInt((max - min) + 1) + min;
+            myApp.connectTZtoLS(transportZones.get("TZ" + randomNum), logicalSwitches.get("LS" + i));
+        }
+
+        // Connect TZ --> TN
+        for (int i = 1; i <= transportNodes.size(); i++) {
+            max = transportZones.size();
+            for (int j = 0; j < 5; j++) {
+                int randomNum = rand.nextInt((max - min) + 1) + min;
+                try {
+                    myApp.connectTZtoTN(transportZones.get("TZ" + randomNum), transportNodes.get("TN" + i));
+                } catch (Exception e) {
+                    continue;
+                }
+            }
+        }
+
+//        // WRITE
+//        for (int i = 1; i <= 2500; i++) {
+//            max = logicalSwitches.size();
+//            for (int j = 0; j < 3; j++) {
+//                int randomNum = rand.nextInt((max - min) + 1) + min;
+//                try {
+//                    LogicalSwitch temp = logicalSwitches.get("LS" + randomNum);
+//                    temp.setId(UUID.randomUUID());
+//                    myApp.getGraph().update(temp);
+//                } catch (Exception e) {
+//                    continue;
+//                }
+//            }
+//        }
+
+        // READ
+        for (int i = 1; i <= 10000; i++) {
+            max = transportZones.size();
+            int randomNum = rand.nextInt((max - min) + 1) + min;
+            try {
+                myApp.query2(transportZones.get("TZ" + randomNum));
+            } catch (Exception e) {
+                continue;
+            }
+        }
     }
 }
