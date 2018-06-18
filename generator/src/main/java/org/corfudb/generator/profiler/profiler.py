@@ -1,11 +1,10 @@
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from os import walk
 
 mypath = "/Users/vshriya/Documents/profiler/data/"
-# path = "/Users/vshriya/Documents/profiler/data/client-1524272108636.log"
 path = "/Users/vshriya/Desktop/current/CorfuDB/test/client-1529017385323.log"
+output_path = "results/shriya/"
 points = []
 all_ops = []
 
@@ -84,7 +83,7 @@ def count_active_threads():
     plt.title("# of Active Threads vs. Time Elapsed")
     plt.xlabel("Time Elapsed (ms)")
     plt.ylabel("Number of Unique Active Threads")
-    plt.savefig('results/shriya/count_active_threads.png')
+    plt.savefig(output_path + "count_active_threads.png", bbox_inches='tight')
     plt.clf()
 
 
@@ -112,7 +111,7 @@ def count_seq_calls():
     plt.title("# of Seq Calls vs. Time Elapsed")
     plt.xlabel("Time Elapsed (ms)")
     plt.ylabel("Number of Seq Calls")
-    plt.savefig('results/shriya/count_seq_calls.png', bbox_inches='tight')
+    plt.savefig(output_path + "count_seq_calls.png", bbox_inches='tight')
     plt.clf()
 
 
@@ -137,7 +136,7 @@ def count_stepping():
     plt.title("# of followBackpointers vs. Time Elapsed")
     plt.xlabel("Time Elapsed (ms)")
     plt.ylabel("Number of followBackpointers")
-    plt.savefig('results/shriya/count_stepping.png', bbox_inches='tight')
+    plt.savefig(output_path + "count_stepping.png", bbox_inches='tight')
     plt.clf()
 
 
@@ -178,7 +177,7 @@ def count_unsafe():
     plt.xlabel("Time Elapsed (ms)")
     plt.ylabel("#")
     plt.legend(loc=1)
-    plt.savefig('results/shriya/count_unsafe.png', bbox_inches='tight')
+    plt.savefig(output_path + "count_unsafe.png", bbox_inches='tight')
     plt.clf()
 
 
@@ -204,7 +203,7 @@ def count_ops_per_tx():
     plt.scatter(x, y, alpha=0.3)
     plt.title("Num Ops per Transaction")
     plt.ylabel("Num Ops")
-    plt.savefig('results/shriya/count_ops_per_tx_scatter.png', bbox_inches='tight')
+    plt.savefig(output_path + "count_ops_per_tx_scatter.png", bbox_inches='tight')
     plt.clf()
 
     # create bar chart
@@ -222,7 +221,7 @@ def count_ops_per_tx():
     plt.title("Num Ops per Transaction")
     plt.xlabel("Num Ops")
     plt.ylabel("Num Txs")
-    plt.savefig('results/shriya/count_ops_per_tx_bar.png', bbox_inches='tight')
+    plt.savefig(output_path + "count_ops_per_tx_bar.png", bbox_inches='tight')
     plt.clf()
 
 
@@ -258,7 +257,7 @@ def count_table_ops_per_tx():
     plt.title("Comparison")
     plt.xlabel("#")
     plt.legend(loc=1)
-    plt.savefig('results/shriya/count_table_ops_per_tx_scatter.png', bbox_inches='tight')
+    plt.savefig(output_path + "count_table_ops_per_tx_scatter.png", bbox_inches='tight')
     plt.clf()
 
     # create double bar chart
@@ -293,7 +292,7 @@ def count_table_ops_per_tx():
     plt.title("Num Ops per Transaction")
     plt.xlabel("Num Ops")
     plt.ylabel("Num Txs")
-    plt.savefig('results/shriya/count_table_ops_per_tx_bar.png', bbox_inches='tight')
+    plt.savefig(output_path + "count_table_ops_per_tx_bar.png", bbox_inches='tight')
     plt.clf()
 
 
@@ -331,7 +330,7 @@ def count_id_table_ops_per_tx(table_id):
     plt.title("Comparison")
     plt.xlabel("#")
     plt.legend(loc=1)
-    plt.savefig('results/shriya/count_id_table_ops_per_tx_scatter.png', bbox_inches='tight')
+    plt.savefig(output_path + "count_id_table_ops_per_tx_scatter.png", bbox_inches='tight')
     plt.clf()
 
     # create double bar chart
@@ -366,7 +365,7 @@ def count_id_table_ops_per_tx(table_id):
     plt.title("Num Ops per Transaction")
     plt.xlabel("Num Ops")
     plt.ylabel("Num Txs")
-    plt.savefig('results/shriya/count_id_table_ops_per_tx_bar.png', bbox_inches='tight')
+    plt.savefig(output_path + "count_id_table_ops_per_tx_bar.png", bbox_inches='tight')
     plt.clf()
 
 
@@ -387,7 +386,7 @@ def count_all_ops():
         sizes += [counts[op]]
     plt.pie(sizes, labels=labels, colors=['gold', 'yellowgreen', 'lightcoral', 'lightskyblue'], autopct='%1.1f%%')
     plt.axis('equal')
-    plt.savefig('results/shriya/count_all_ops.png', bbox_inches='tight')
+    plt.savefig(output_path + "count_all_ops.png", bbox_inches='tight')
     plt.clf()
 
 
@@ -422,7 +421,7 @@ def count_all_ops_time(): # review this code - may not be 100% accurate, esp. fo
         sizes += [sum_time_count[op]]
     plt.pie(sizes, labels=labels, colors=['gold', 'yellowgreen', 'lightcoral', 'lightskyblue'], autopct='%1.1f%%')
     plt.axis('equal')
-    plt.savefig('results/shriya/count_all_ops_time.png', bbox_inches='tight')
+    plt.savefig(output_path + "count_all_ops_time.png", bbox_inches='tight')
     plt.clf()
 
 
@@ -477,7 +476,7 @@ def count_all_ops_time_by_tx():
     labels = all_ops
     plt.pie(sizes, labels=labels, colors=['gold', 'yellowgreen', 'lightcoral', 'lightskyblue'], autopct='%1.1f%%')
     plt.axis('equal')
-    plt.savefig('results/shriya/count_all_ops_time_by_tx.png', bbox_inches='tight')
+    plt.savefig(output_path + "count_all_ops_time_by_tx.png", bbox_inches='tight')
     plt.clf()
 
 
@@ -518,20 +517,20 @@ def count_reads():
     plt.xlabel("Time Elapsed (ms)")
     plt.ylabel("#")
     plt.legend(loc=1)
-    plt.savefig('results/shriya/count_reads_scatter.png', bbox_inches='tight')
+    plt.savefig(output_path + "count_reads_scatter.png", bbox_inches='tight')
     plt.clf()
 
 
 ### Display Results
 setup()
-count_active_threads()
-count_seq_calls()
-count_stepping()
-count_unsafe()
-count_ops_per_tx()
-count_table_ops_per_tx()
-count_id_table_ops_per_tx("7c4f2940-7893-3334-a6cb-7a87bf045c0d")
-count_all_ops()
-count_all_ops_time()
-count_all_ops_time_by_tx()
-count_reads()
+# count_active_threads()
+# count_seq_calls()
+# count_stepping()
+# count_unsafe()
+# count_ops_per_tx()
+# count_table_ops_per_tx()
+# count_id_table_ops_per_tx("7c4f2940-7893-3334-a6cb-7a87bf045c0d")
+# count_all_ops()
+# count_all_ops_time()
+# count_all_ops_time_by_tx()
+# count_reads()
