@@ -1,8 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from os import walk
 
-mypath = "/Users/vshriya/Documents/profiler/data/"
 path = "/Users/vshriya/Desktop/current/CorfuDB/test/client-1529017385323.log"
 output_path = "results/shriya/"
 points = []
@@ -18,23 +16,6 @@ def setup():
         points.append(point)
         if get_event_name(point) not in all_ops:
             all_ops.append(get_event_name(point))
-
-    # sort points by start time
-    points.sort(key=lambda x: get_time_stamp(x))
-
-def setup_all_files():
-    global points
-
-    files = []
-    for (dirpath, dirnames, filenames) in walk(mypath):
-        files.extend(filenames)
-
-    for file in files:
-        # open file and initialize vars
-        print file
-        f = open(mypath + file)
-        for point in f.readlines():
-            points.append(point)
 
     # sort points by start time
     points.sort(key=lambda x: get_time_stamp(x))
@@ -523,14 +504,14 @@ def count_reads():
 
 ### Display Results
 setup()
-# count_active_threads()
-# count_seq_calls()
-# count_stepping()
-# count_unsafe()
-# count_ops_per_tx()
-# count_table_ops_per_tx()
-# count_id_table_ops_per_tx("7c4f2940-7893-3334-a6cb-7a87bf045c0d")
-# count_all_ops()
-# count_all_ops_time()
-# count_all_ops_time_by_tx()
-# count_reads()
+count_active_threads()
+count_seq_calls()
+count_stepping()
+count_unsafe()
+count_ops_per_tx()
+count_table_ops_per_tx()
+count_id_table_ops_per_tx("7c4f2940-7893-3334-a6cb-7a87bf045c0d")
+count_all_ops()
+count_all_ops_time()
+count_all_ops_time_by_tx()
+count_reads()
