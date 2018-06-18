@@ -11,6 +11,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
+import org.corfudb.runtime.exceptions.unrecoverable.UnrecoverableCorfuInterruptedError;
 
 /**
  * Created by mwei on 9/15/15.
@@ -30,18 +31,16 @@ public class CFUtils {
             A extends Throwable,
             B extends Throwable,
             C extends Throwable,
-            D extends Throwable>
-    T getUninterruptibly(Future<T> future,
-                         Class<A> throwableA,
-                         Class<B> throwableB,
-                         Class<C> throwableC,
-                         Class<D> throwableD)
+            D extends Throwable> T getUninterruptibly(Future<T> future,
+                                                      Class<A> throwableA,
+                                                      Class<B> throwableB,
+                                                      Class<C> throwableC,
+                                                      Class<D> throwableD)
             throws A, B, C, D {
-        while (true) {
             try {
                 return future.get();
             } catch (InterruptedException e) {
-                //retry
+                throw new UnrecoverableCorfuInterruptedError("Interrupted while completing future", e);
             } catch (ExecutionException ee) {
                 if (throwableA.isInstance(ee.getCause())) {
                     throw (A) ee.getCause();
@@ -57,43 +56,44 @@ public class CFUtils {
                 }
                 throw new RuntimeException(ee.getCause());
             }
-        }
     }
 
     public static <T,
             A extends Throwable,
             B extends Throwable,
-            C extends Throwable>
-    T getUninterruptibly(Future<T> future,
-                         Class<A> throwableA,
-                         Class<B> throwableB,
-                         Class<C> throwableC)
+            C extends Throwable> T getUninterruptibly(Future<T> future,
+                                                      Class<A> throwableA,
+                                                      Class<B> throwableB,
+                                                      Class<C> throwableC)
             throws A, B, C {
-        return getUninterruptibly(future, throwableA, throwableB, throwableC, RuntimeException.class);
+        return getUninterruptibly(future, throwableA, throwableB, throwableC,
+                RuntimeException.class);
     }
 
     public static <T,
             A extends Throwable,
-            B extends Throwable>
-    T getUninterruptibly(Future<T> future,
-                         Class<A> throwableA,
-                         Class<B> throwableB)
+            B extends Throwable> T getUninterruptibly(Future<T> future,
+                                                      Class<A> throwableA,
+                                                      Class<B> throwableB)
             throws A, B {
-        return getUninterruptibly(future, throwableA, throwableB, RuntimeException.class, RuntimeException.class);
+        return getUninterruptibly(future, throwableA, throwableB, RuntimeException.class,
+                RuntimeException.class);
     }
 
-    public static <T,
-            A extends Throwable>
-    T getUninterruptibly(Future<T> future,
-                         Class<A> throwableA)
+    public static <T, A extends Throwable> T getUninterruptibly(Future<T> future,
+                                                                Class<A> throwableA)
             throws A {
-        return getUninterruptibly(future, throwableA, RuntimeException.class, RuntimeException.class, RuntimeException.class);
+        return getUninterruptibly(future, throwableA, RuntimeException.class,
+                RuntimeException.class, RuntimeException.class);
     }
 
-    public static <T>
-    T getUninterruptibly(Future<T> future) {
-        return getUninterruptibly(future, RuntimeException.class, RuntimeException.class, RuntimeException.class, RuntimeException.class);
+    public static <T> T getUninterruptibly(Future<T> future) {
+        return getUninterruptibly(future, RuntimeException.class, RuntimeException.class,
+                RuntimeException.class, RuntimeException.class);
     }
+
+    /** A static timeout exception that we complete futures exceptionally with. */
+    static final TimeoutException TIMEOUT_EXCEPTION = new TimeoutException();
 
     /**
      * Generates a completable future which times out.
@@ -105,10 +105,8 @@ public class CFUtils {
      */
     public static <T> CompletableFuture<T> failAfter(Duration duration) {
         final CompletableFuture<T> promise = new CompletableFuture<>();
-        scheduler.schedule(() -> {
-            final TimeoutException ex = new TimeoutException("Timeout after " + duration.toMillis() + " ms");
-            return promise.completeExceptionally(ex);
-        }, duration.toMillis(), TimeUnit.MILLISECONDS);
+        scheduler.schedule(() -> promise.completeExceptionally(TIMEOUT_EXCEPTION),
+                                        duration.toMillis(), TimeUnit.MILLISECONDS);
         return promise;
     }
 
@@ -116,7 +114,6 @@ public class CFUtils {
      * Schedules a runnable after a given time
      *
      * @param duration The duration to timeout after.
-     * @return A completable future that will time out.
      */
     public static void runAfter(Duration duration, Runnable toRun) {
         final CompletableFuture<Void> promise = new CompletableFuture<>();
@@ -124,15 +121,15 @@ public class CFUtils {
     }
 
     /**
-     * Takes a completable future, and ensures that it completes within a certain duration. If it does
-     * not, it is cancelled and completes exceptionally with TimeoutException.
-     * inspired by NoBlogDefFound: http://www.nurkiewicz.com/2014/12/asynchronous-timeouts-with.html
+     * Takes a completable future, and ensures that it completes within a certain duration.
+     * If it does not, it is cancelled and completes exceptionally with TimeoutException.
+     * inspired by NoBlogDefFound: www.nurkiewicz.com/2014/12/asynchronous-timeouts-with.html
      *
      * @param future   The completable future that must be completed within duration.
      * @param duration The duration the future must be completed in.
      * @param <T>      The return type of the future.
-     * @return A completable future which completes with the original value if completed within
-     * duration, otherwise completes exceptionally with TimeoutException.
+     * @return         A completable future which completes with the original value if completed
+     *                 within duration, otherwise completes exceptionally with TimeoutException.
      */
     public static <T> CompletableFuture<T> within(CompletableFuture<T> future, Duration duration) {
         final CompletableFuture<T> timeout = failAfter(duration);

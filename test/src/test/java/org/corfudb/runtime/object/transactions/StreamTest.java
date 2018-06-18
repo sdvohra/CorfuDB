@@ -1,12 +1,22 @@
 package org.corfudb.runtime.object.transactions;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import org.corfudb.runtime.CorfuRuntime;
+import org.corfudb.runtime.clients.LogUnitClient;
 import org.corfudb.runtime.collections.ISMRMap;
 import org.corfudb.runtime.collections.SMRMap;
+import org.corfudb.runtime.exceptions.AbortCause;
+import org.corfudb.runtime.exceptions.AppendException;
 import org.corfudb.runtime.exceptions.TransactionAbortedException;
+import org.corfudb.runtime.view.stream.IStreamView;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -40,6 +50,104 @@ public class StreamTest extends AbstractTransactionsTest {
 
     private final int READ_PERCENT = 80;
     private final int MAX_PERCENT = 100;
+
+    @Test
+    public void testOverWriteRetry() {
+        UUID svId = CorfuRuntime.getStreamID("stream1");
+        final long trimMark = getRuntime().getParameters().getWriteRetry() - 1;
+        getRuntime().getAddressSpaceView().prefixTrim(trimMark);
+        final int payloadSize = 100;
+        assertThatThrownBy(() -> getRuntime().getStreamsView().append(Collections.singleton(svId),
+                new byte[payloadSize], null))
+                .isInstanceOf(AppendException.class);
+    }
+
+    @Test
+    public void testBackpointersSvOverwriteRetry() {
+        UUID svId = CorfuRuntime.getStreamID("stream1");
+        final long trimMark = getRuntime().getParameters().getWriteRetry() - 1;
+        getRuntime().getAddressSpaceView().prefixTrim(trimMark);
+        final int payloadSize = 100;
+        IStreamView sv = getRuntime().getStreamsView().get(svId);
+        assertThatThrownBy(() -> sv.append(new byte[payloadSize]))
+        .isInstanceOf(AppendException.class);
+    }
+
+    @Test
+    public void testTxnOverwriteRetry() throws Exception {
+        SMRMap<String, String> map = instantiateCorfuObject(SMRMap.class, "A");
+        final long trimMark = getRuntime().getParameters().getWriteRetry() - 1;
+        final String key = "key";
+        final String val = "val";
+        LogUnitClient lu = getRuntime().getLayoutView().getRuntimeLayout()
+                .getLogUnitClient(getDefaultConfigurationString());
+        lu.prefixTrim(trimMark).get();
+        TXBegin();
+        map.put(key, val);
+
+        assertThatThrownBy(() ->TXEnd())
+                .isInstanceOf(TransactionAbortedException.class);
+    }
+
+    @Test
+    public void sequencerTrimTest() {
+
+        SMRMap<String, String> map = instantiateCorfuObject(SMRMap.class, "A");
+        final int numEntries = 10;
+        TXBegin();
+        map.get("a");
+        t2(() -> {
+            TXBegin();
+            for (int x = 0; x < numEntries; x++) {
+                map.put(Integer.toString(x), Integer.toString(x));
+            }
+            TXEnd();
+        });
+
+        getRuntime().getAddressSpaceView().prefixTrim(1);
+
+        for (int x = 0; x < numEntries; x++) {
+            map.put(Integer.toString(x), Integer.toString(x));
+        }
+
+        boolean abortException = false;
+
+        try {
+            TXEnd();
+        } catch (TransactionAbortedException tae) {
+            assertThat(tae.getAbortCause()).isEqualTo(AbortCause.SEQUENCER_TRIM);
+            abortException = true;
+        }
+
+        assertThat(abortException).isTrue();
+    }
+
+    @Test
+    public void sequencerOverflowTest() {
+
+        SMRMap<String, String> map = instantiateCorfuObject(SMRMap.class, "A");
+        final int numEntries = 2000;
+        boolean abortException = false;
+
+        try {
+            TXBegin();
+            map.put("0", "0");
+
+            t1(() -> {
+                for (int x = 0; x < numEntries; x++) {
+                    TXBegin();
+                    map.put(Integer.toString(x), Integer.toString(x));
+                    TXEnd();
+                }
+            });
+
+            TXEnd();
+        } catch (TransactionAbortedException tae) {
+            assertThat(tae.getAbortCause()).isEqualTo(AbortCause.SEQUENCER_OVERFLOW);
+            abortException = true;
+        }
+        assertThat(abortException).isTrue();
+    }
 
     @Test
     public void mixBackpointers() {

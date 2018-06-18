@@ -2,21 +2,25 @@ package org.corfudb.protocols.wireprotocol;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import lombok.Getter;
-import org.corfudb.protocols.logprotocol.LogEntry;
-import org.corfudb.runtime.CorfuRuntime;
-import org.corfudb.util.serializer.Serializers;
 
 import java.util.EnumMap;
 import java.util.concurrent.atomic.AtomicReference;
 
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+
+import org.corfudb.protocols.logprotocol.CheckpointEntry;
+import org.corfudb.protocols.logprotocol.LogEntry;
+import org.corfudb.runtime.CorfuRuntime;
+import org.corfudb.util.serializer.Serializers;
+
 /**
  * Created by mwei on 8/15/16.
  */
+@Slf4j
 public class LogData implements ICorfuPayload<LogData>, IMetadata, ILogData {
 
-    public static final LogData EMPTY = new LogData(DataType.EMPTY);
-    public static final LogData HOLE = new LogData(DataType.HOLE);
+    public static final int NOT_KNOWN = -1;
 
     @Getter
     final DataType type;
@@ -26,8 +30,31 @@ public class LogData implements ICorfuPayload<LogData>, IMetadata, ILogData {
 
     private ByteBuf serializedCache = null;
 
-    private transient final AtomicReference<Object> payload = new AtomicReference<>();
+    private int lastKnownSize = NOT_KNOWN;
 
+    private final transient AtomicReference<Object> payload = new AtomicReference<>();
+
+    public static LogData getTrimmed(long address) {
+        LogData logData = new LogData(DataType.TRIMMED);
+        logData.setGlobalAddress(address);
+        return logData;
+    }
+
+    public static LogData getHole(long address) {
+        LogData logData = new LogData(DataType.HOLE);
+        logData.setGlobalAddress(address);
+        return logData;
+    }
+
+    public static LogData getEmpty(long address) {
+        LogData logData = new LogData(DataType.EMPTY);
+        logData.setGlobalAddress(address);
+        return logData;
+    }
+
+    /**
+     * Return the payload.
+     */
     public Object getPayload(CorfuRuntime runtime) {
         Object value = payload.get();
         if (value == null) {
@@ -48,13 +75,13 @@ public class LogData implements ICorfuPayload<LogData>, IMetadata, ILogData {
                         value = actualValue == null ? this.payload : actualValue;
                         this.payload.set(value);
                         copyBuf.release();
+                        lastKnownSize = data.length;
                         data = null;
                     }
                 }
             }
         }
 
-        data = null;
         return value;
     }
 
@@ -73,23 +100,31 @@ public class LogData implements ICorfuPayload<LogData>, IMetadata, ILogData {
         if (serializedCache == null) {
             serializedCache = Unpooled.buffer();
             doSerializeInternal(serializedCache);
-        }
-        else {
+            lastKnownSize = serializedCache.array().length;
+        } else {
             serializedCache.retain();
         }
     }
 
     @Override
     public int getSizeEstimate() {
-        if (data != null) {
-            return data.length;
+        byte[] tempData = data;
+        if (tempData != null) {
+            return tempData.length;
+        } else if (lastKnownSize != NOT_KNOWN) {
+            return lastKnownSize;
         }
+        log.warn("getSizeEstimate: LogData size estimate is defaulting to 1,"
+                + " this might cause leaks in the cache!");
         return 1;
     }
 
     @Getter
     final EnumMap<LogUnitMetadataType, Object> metadataMap;
 
+    /**
+     * Return the payload.
+     */
     public LogData(ByteBuf buf) {
         type = ICorfuPayload.fromBuffer(buf, DataType.class);
         if (type == DataType.DATA) {
@@ -106,27 +141,53 @@ public class LogData implements ICorfuPayload<LogData>, IMetadata, ILogData {
         }
     }
 
+    /**
+     * Constructor for generating LogData.
+     *
+     * @param type The type of log data to instantiate.
+     */
     public LogData(DataType type) {
         this.type = type;
         this.data = null;
         this.metadataMap = new EnumMap<>(IMetadata.LogUnitMetadataType.class);
     }
 
-    public LogData(final Object object) {
-        this.type = DataType.DATA;
-        this.data = null;
-        this.payload.set(object);
-        if (object instanceof LogEntry) {
-            ((LogEntry) object).setEntry(this);
+    /**
+     * Constructor for generating LogData.
+     *
+     * @param type The type of log data to instantiate.
+     * @param object The actual data/value
+     */
+    public LogData(DataType type, final Object object) {
+        if (object instanceof ByteBuf) {
+            this.type = type;
+            this.data = byteArrayFromBuf((ByteBuf) object);
+            this.metadataMap = new EnumMap<>(IMetadata.LogUnitMetadataType.class);
+        } else {
+            this.type = type;
+            this.data = null;
+            this.payload.set(object);
+            if (object instanceof LogEntry) {
+                ((LogEntry) object).setEntry(this);
+            }
+            this.metadataMap = new EnumMap<>(IMetadata.LogUnitMetadataType.class);
+            if (object instanceof CheckpointEntry) {
+                CheckpointEntry cp = (CheckpointEntry) object;
+                setCheckpointType(cp.getCpType());
+                setCheckpointId(cp.getCheckpointId());
+                setCheckpointedStreamId(cp.getStreamId());
+                setCheckpointedStreamStartLogAddress(
+                        Long.parseLong(cp.getDict()
+                                .get(CheckpointEntry.CheckpointDictKey.START_LOG_ADDRESS)));
+            }
         }
-        this.metadataMap = new EnumMap<>(IMetadata.LogUnitMetadataType.class);
-    }
-    public LogData(final DataType type, final ByteBuf buf) {
-        this.type = type;
-        this.data = byteArrayFromBuf(buf);
-        this.metadataMap = new EnumMap<>(IMetadata.LogUnitMetadataType.class);
     }
 
+    /**
+     * Return a byte array from buffer.
+     *
+     * @param buf The buffer to read from
+     */
     public byte[] byteArrayFromBuf(final ByteBuf buf) {
         ByteBuf readOnlyCopy = buf.asReadOnly();
         readOnlyCopy.resetReaderIndex();
@@ -162,6 +223,33 @@ public class LogData implements ICorfuPayload<LogData>, IMetadata, ILogData {
         }
         if (type.isMetadataAware()) {
             ICorfuPayload.serialize(buf, metadataMap);
+        }
+    }
+
+    /**
+     * LogData are considered equals if clientId and threadId are equal.
+     * Here, it means or both of them are null or both of them are the same.
+     * @param o
+     * @return
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        } else if (!(o instanceof LogData)) {
+            return false;
+        } else {
+            LogData other = (LogData) o;
+            if (compareTo(other) == 0) {
+                boolean sameClientId = getClientId() == null ? other.getClientId() == null :
+                        getClientId().equals(other.getClientId());
+                boolean sameThreadId = getThreadId() == null ? other.getThreadId() == null :
+                        getThreadId().equals(other.getThreadId());
+
+                return sameClientId && sameThreadId;
+            }
+
+            return false;
         }
     }
 

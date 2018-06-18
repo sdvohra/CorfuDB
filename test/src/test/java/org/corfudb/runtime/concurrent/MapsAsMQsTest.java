@@ -7,8 +7,7 @@ import org.junit.Test;
 
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.Semaphore;
 
 /**
  * Created by dalia on 3/18/17.
@@ -19,7 +18,7 @@ public class MapsAsMQsTest extends AbstractTransactionsTest {
     public void TXBegin() { OptimisticTXBegin(); }
 
 
-    protected int numIterations = PARAMETERS.NUM_ITERATIONS_MODERATE;
+    protected int numIterations = PARAMETERS.NUM_ITERATIONS_LOW;
 
     /**
      * This test verifies commit atomicity against concurrent -read- activity,
@@ -34,9 +33,8 @@ public class MapsAsMQsTest extends AbstractTransactionsTest {
 
         final int nThreads = 4;
         CountDownLatch barrier = new CountDownLatch(nThreads-1);
-        ReentrantLock lock = new ReentrantLock();
-        Condition c1 = lock.newCondition();
-        Condition c2 = lock.newCondition();
+        Semaphore s1 = new Semaphore(0);
+        Semaphore s2 = new Semaphore(0);
 
 
         // 1st thread: producer of new "trigger" values
@@ -47,23 +45,14 @@ public class MapsAsMQsTest extends AbstractTransactionsTest {
             log.debug("all started");
 
             for (int i = 0; i < numIterations; i++) {
+                // place a value in the map
+                log.debug("- sending 1st trigger {}", i);
+                testMap1.put(1L, (long) i);
 
-                try {
-                    lock.lock();
+                // await for the consumer condition to circulate back
+                s2.acquire();
 
-                    // place a value in the map
-                    log.debug("- sending 1st trigger " + i);
-                    testMap1.put(1L, (long) i);
-
-                    // await for the consumer condition to circulate back
-                    c2.await();
-
-                    log.debug("- sending 2nd trigger " + i);
-
-
-                } finally {
-                    //lock.unlock();
-                }
+                log.debug("- s2.await() finished at {}", i);
             }
         });
 
@@ -77,20 +66,15 @@ public class MapsAsMQsTest extends AbstractTransactionsTest {
 
             for (int i = 0; i < numIterations; i++) {
                 while (testMap1.get(1L) == null || testMap1.get(1L) != (long) i) {
-                    log.debug( "- wait for 1st trigger " + i);
+                    log.debug( "- wait for 1st trigger {}", i);
                     Thread.sleep(busyDelay);
                 }
-                log.debug( "- received 1st trigger " + i);
+                log.debug( "- received 1st trigger {}", i);
 
                 // 1st producer signal through lock
-                try {
-                    lock.lock();
-
-                    // 1st producer signal
-                    c1.signal();
-                } finally {
-                    lock.unlock();
-                }
+                // 1st producer signal
+                log.debug( "- sending 1st signal {}", i);
+                s1.release();
             }
         });
 
@@ -101,21 +85,17 @@ public class MapsAsMQsTest extends AbstractTransactionsTest {
             barrier.countDown();
 
             for (int i = 0; i < numIterations; i++) {
-                try {
-                    TXBegin();
-                    lock.lock();
+                TXBegin();
+                log.debug( "- received 1st condition POST-lock PRE-await{}", i);
 
-                    // wait for 1st producer signal
-                    c1.await();
-                    log.debug( "- received 1st condition " + i);
+                // wait for 1st producer signal
+                s1.acquire();
+                log.debug( "- received 1st condition {}", i);
 
-                    // produce another tigger value
-                    log.debug( "- sending 2nd trigger " + i);
-                    testMap1.put(2L, (long) i);
-                    TXEnd();
-                } finally {
-                    lock.unlock();
-                }
+                // produce another tigger value
+                log.debug( "- sending 2nd trigger {}", i);
+                testMap1.put(2L, (long) i);
+                TXEnd();
             }
         });
 
@@ -130,18 +110,12 @@ public class MapsAsMQsTest extends AbstractTransactionsTest {
             for (int i = 0; i < numIterations; i++) {
                 while (testMap1.get(2L) == null || testMap1.get(2L) != (long) i)
                     Thread.sleep(busyDelay);
-                log.debug( "- received 2nd trigger " + i);
+                log.debug( "- received 2nd trigger {}", i);
 
                 // 2nd producer signal through lock
-                try {
-                    lock.lock();
-
-                    // 2nd producer signal
-                    log.debug( "- sending 2nd signal " + i);
-                    c2.signal();
-                } finally {
-                    lock.unlock();
-                }
+                // 2nd producer signal
+                log.debug( "- sending 2nd signal {}", i);
+                s2.release();
             }
         });
 

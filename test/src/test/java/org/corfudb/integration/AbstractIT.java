@@ -1,9 +1,16 @@
 package org.corfudb.integration;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.Accessors;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.corfudb.AbstractCorfuTest;
 import org.corfudb.runtime.CorfuRuntime;
 import org.corfudb.runtime.collections.SMRMap;
+import org.corfudb.runtime.exceptions.ShutdownException;
+import org.corfudb.runtime.view.RuntimeLayout;
+import org.corfudb.util.Sleep;
 import org.junit.After;
 import org.junit.Before;
 
@@ -15,23 +22,27 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 
 /**
  * Integration tests.
  * Created by zlokhandwala on 4/28/17.
  */
+@Slf4j
 public class AbstractIT extends AbstractCorfuTest {
-
     static final String DEFAULT_HOST = "localhost";
     static final int DEFAULT_PORT = 9000;
     static final String DEFAULT_ENDPOINT = DEFAULT_HOST + ":" + DEFAULT_PORT;
 
-    private static final String CORFU_LOG_PATH = PARAMETERS.TEST_TEMP_DIR;
-    private static final String CORFU_PROJECT_DIR = new File("..").getAbsolutePath() + File.separator;
-    private static final String CORFU_CONSOLELOG = CORFU_LOG_PATH + File.separator + "consolelog";
+    static final String CORFU_PROJECT_DIR = new File("..").getAbsolutePath() + File.separator;
+    static final String CORFU_LOG_PATH = PARAMETERS.TEST_TEMP_DIR;
+
     private static final String KILL_COMMAND = "pkill -9 -P ";
     private static final String FORCE_KILL_ALL_CORFU_COMMAND = "jps | grep CorfuServer|awk '{print $1}'| xargs kill -9";
 
@@ -75,50 +86,9 @@ public class AbstractIT extends AbstractCorfuTest {
         forceShutdownAllCorfuServers();
     }
 
-    /**
-     * Runs the CorfuServer in a separate bash process.
-     * By default the server starts on localhost:9000.
-     *
-     * @return
-     * @throws IOException
-     * @throws InterruptedException
-     */
-    public static Process runCorfuServer() throws IOException, InterruptedException {
-        return runCorfuServer(DEFAULT_HOST, DEFAULT_PORT);
-    }
-
-    /**
-     * Runs the CorfuServer in a separate bash process.
-     *
-     * @param host
-     * @param port
-     * @return
-     * @throws IOException
-     * @throws InterruptedException
-     */
-    public static Process runCorfuServer(String host, int port) throws IOException, InterruptedException {
-        File logPath = new File(getCorfuServerLogPath(host, port));
-        if (!logPath.exists()) {
-            logPath.mkdir();
-        }
-
-        ProcessBuilder builder = new ProcessBuilder();
-        builder.command("sh", "-c", getRunServerCommand(host, port, getCorfuServerLogPath(host, port)));
-        builder.directory(new File(CORFU_PROJECT_DIR));
-        Process corfuServerProcess = builder.start();
-        StreamGobbler streamGobbler = new StreamGobbler(corfuServerProcess.getInputStream(), CORFU_CONSOLELOG);
-        Executors.newSingleThreadExecutor().submit(streamGobbler);
-        return corfuServerProcess;
-    }
-
     public static String getCorfuServerLogPath(String host, int port) {
         return CORFU_LOG_PATH + File.separator + host + "_" + port + "_log";
     }
-
-    private static String getRunServerCommand(String host, int port, String logPath) {
-        return "bin/corfu_server -a " + host + " -sl " + logPath + " -d TRACE " + port;
-    }
-
 
     /**
      * Shuts down all corfu instances running on the node.
@@ -135,7 +105,6 @@ public class AbstractIT extends AbstractCorfuTest {
 
     /**
      * Shuts down all corfu instances.
-     * TODO: Should be able to gracefully kill a single specified corfu server.
      *
      * @param corfuServerProcess
      * @return
@@ -145,23 +114,100 @@ public class AbstractIT extends AbstractCorfuTest {
     public static boolean shutdownCorfuServer(Process corfuServerProcess) throws IOException, InterruptedException {
         int retries = SHUTDOWN_RETRIES;
         while (true) {
-            long pid = getPid(corfuServerProcess);
-            ProcessBuilder builder = new ProcessBuilder();
-            builder.command("sh", "-c", KILL_COMMAND + pid);
-            Process p = builder.start();
-            p.waitFor();
+            long parentPid = getPid(corfuServerProcess);
+            // Get Children PIDs
+            List<Long> pidList = getChildPIDs(parentPid);
+            pidList.add(parentPid);
 
-            if (retries == 0) {
-                return false;
-            }
-            if (corfuServerProcess.isAlive()) {
-                retries--;
-                Thread.sleep(SHUTDOWN_RETRY_WAIT);
-            } else {
-                return true;
+            ProcessBuilder builder = new ProcessBuilder();
+            for (Long pid : pidList) {
+                builder.command("sh", "-c", KILL_COMMAND + pid.longValue());
+                Process p = builder.start();
+                p.waitFor();
+             }
+
+             if (retries == 0) {
+                 return false;
+             }
+
+             if (corfuServerProcess.isAlive()) {
+                 retries--;
+                 Thread.sleep(SHUTDOWN_RETRY_WAIT);
+             } else {
+                 return true;
+             }
+        }
+    }
+
+    public void restartServer(CorfuRuntime corfuRuntime, String endpoint) {
+        corfuRuntime.invalidateLayout();
+        RuntimeLayout runtimeLayout = corfuRuntime.getLayoutView().getRuntimeLayout();
+        try {
+            runtimeLayout.getBaseClient(endpoint).restart().get();
+        } catch (ExecutionException | InterruptedException e) {
+            log.error("Error: {}", e);
+        }
+
+        // The shutdown and restart can take an unknown amount of time and there is a chance that
+        // the newer runtime may also connect to the older corfu server (before restart).
+        // Hence the while loop.
+        while (true) {
+            try {
+                if (corfuRuntime.getLayoutView().getLayout().getEpoch()
+                        == (runtimeLayout.getLayout().getEpoch() + 1)) {
+                    break;
+                }
+                Sleep.MILLISECONDS.sleepUninterruptibly(PARAMETERS.TIMEOUT_SHORT);
+                corfuRuntime.invalidateLayout();
+            } catch (ShutdownException se) {
+                log.error("Shutdown Exception thrown connecting to server:{} ignored, {}",
+                        endpoint, se);
             }
         }
     }
+
+    /**
+     * Get list of children (descendant) process identifiers (recursive)
+     *
+     * @param pid parent process identifier
+     * @return list of children process identifiers
+     *
+     * @throws IOException
+     */
+    private static List<Long> getChildPIDs (long pid) {
+        List<Long> childPIDs = new ArrayList<>();
+        try {
+            // Get child pid(s)
+            ProcessBuilder builder = new ProcessBuilder();
+            builder.command("sh", "-c", "pgrep -P " + pid);
+            Process p = builder.start();
+            p.waitFor();
+
+            // Read output
+            BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            String line = null;
+            String previous = null;
+            while ((line = br.readLine()) != null) {
+                if (!line.equals(previous)) {
+                    previous = line;
+                    long childPID = Long.parseLong(line);
+                    childPIDs.add(childPID);
+                }
+            }
+
+            // Recursive lookup of children pids
+            for (Long childPID : childPIDs) {
+                List<Long> pidRecursive = getChildPIDs(childPID.longValue());
+                childPIDs.addAll(pidRecursive);
+            }
+
+        } catch (IOException e) {
+            throw e;
+        } finally {
+            return childPIDs;
+        }
+    }
+
 
     public static long getPid(Process p) {
         long pid = -1;
@@ -203,9 +249,12 @@ public class AbstractIT extends AbstractCorfuTest {
         private InputStream inputStream;
         private String logfile;
 
-        public StreamGobbler(InputStream inputStream, String logfile) {
+        public StreamGobbler(InputStream inputStream, String logfile) throws IOException {
             this.inputStream = inputStream;
             this.logfile = logfile;
+            if (Files.notExists(Paths.get(logfile))) {
+                Files.createFile(Paths.get(logfile));
+            }
         }
 
         @Override
@@ -213,12 +262,63 @@ public class AbstractIT extends AbstractCorfuTest {
             new BufferedReader(new InputStreamReader(inputStream)).lines()
                     .forEach((x) -> {
                                 try {
-                                    Files.write(Paths.get(logfile), x.getBytes());
+                                    Files.write(Paths.get(logfile), x.getBytes(),
+                                            StandardOpenOption.APPEND);
+                                    Files.write(Paths.get(logfile), "\n".getBytes(),
+                                            StandardOpenOption.APPEND);
                                 } catch (Exception e) {
-                                    e.printStackTrace();
+                                    log.error("StreamGobbler: Error, {}", e);
                                 }
                             }
                     );
+        }
+    }
+
+    @Getter
+    @Setter
+    @Accessors(chain = true)
+    public static class CorfuServerRunner {
+
+        private boolean single = true;
+        private String logLevel = "INFO";
+        private String host = DEFAULT_HOST;
+        private int port = DEFAULT_PORT;
+        private String managementBootstrap = null;
+        private String logPath = null;
+
+        public String getOptionsString() {
+            StringBuilder command = new StringBuilder();
+            command.append("-a ").append(host);
+            if (logPath != null) {
+                command.append(" -l ").append(logPath);
+            } else {
+                command.append(" -m");
+            }
+            if (single) {
+                command.append(" -s");
+            }
+            if (managementBootstrap != null) {
+                command.append(" -M ").append(managementBootstrap);
+            }
+            command.append(" -d ").append(logLevel).append(" ")
+                    .append(port);
+            return command.toString();
+        }
+
+        public Process runServer() throws IOException {
+            final String serverConsoleLogPath = CORFU_LOG_PATH + File.separator + host + "_" + port + "_consolelog";
+
+            File logPath = new File(getCorfuServerLogPath(host, port));
+            if (!logPath.exists()) {
+                logPath.mkdir();
+            }
+            ProcessBuilder builder = new ProcessBuilder();
+            builder.command("sh", "-c", "bin/corfu_server " + getOptionsString());
+            builder.directory(new File(CORFU_PROJECT_DIR));
+            Process corfuServerProcess = builder.start();
+            StreamGobbler streamGobbler = new StreamGobbler(corfuServerProcess.getInputStream(), serverConsoleLogPath);
+            Executors.newSingleThreadExecutor().submit(streamGobbler);
+            return corfuServerProcess;
         }
     }
 }

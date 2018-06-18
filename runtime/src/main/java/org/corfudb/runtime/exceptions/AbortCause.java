@@ -9,5 +9,11 @@ import lombok.RequiredArgsConstructor;
 public enum AbortCause {
     CONFLICT,
     NEW_SEQUENCER,
-    USER;
+    USER,
+    NETWORK,
+    TRIM, /** Aborted because an access to this snapshot resulted in a trim exception. */
+    SEQUENCER_OVERFLOW,
+    SEQUENCER_TRIM,
+    UNSUPPORTED,
+    UNDEFINED;
 }

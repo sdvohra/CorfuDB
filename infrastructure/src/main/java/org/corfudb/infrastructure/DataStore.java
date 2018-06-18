@@ -1,101 +1,144 @@
 package org.corfudb.infrastructure;
 
-import com.github.benmanes.caffeine.cache.*;
-import lombok.Getter;
-import org.corfudb.util.JSONUtils;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.CacheWriter;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.RemovalCause;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
 import java.util.Map;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
+import lombok.Getter;
+
+import org.corfudb.runtime.exceptions.DataCorruptionException;
+import org.corfudb.util.JsonUtils;
+
+import static org.corfudb.infrastructure.utils.Persistence.syncDirectory;
 
 /**
  * Stores data as JSON.
  *
- * Handle in-memory and persistent case differently:
+ * <p>Handle in-memory and persistent case differently:
  *
- * In in-memory mode, the "cache" is actually the store, so we never evict anything from it.
+ * <p>In in-memory mode, the "cache" is actually the store, so we never evict anything from it.
  *
- * In persistent mode, we use a {@link LoadingCache}, where an in-memory map is backed by disk.
+ * <p>In persistent mode, we use a {@link LoadingCache}, where an in-memory map is backed by disk.
  * In this scheme, the key for each value is also the name of the file where the value is stored.
  * The key is determined as (prefix + "_" + key).
  * The cache here serves mostly for easily managed synchronization of in-memory/file.
- * <p>
- * If 'opts' either has '--memory=true' or a log-path for storing files is not provided,
+ *
+ * <p>If 'opts' either has '--memory=true' or a log-path for storing files is not provided,
  * the store is just an in memory cache.
- * <p>
- * Created by mdhawan on 7/27/16.
+ *
+ * <p>Created by mdhawan on 7/27/16.
  */
+
 public class DataStore implements IDataStore {
 
-    private final Map<String, Object> opts;
-    private final boolean isPersistent;
+    static String EXTENSION = ".ds";
+
     @Getter
-    private final LoadingCache<String, String> cache;
+    private final Cache<String, Object> cache;
     private final String logDir;
 
     @Getter
-    private final long DS_CACHE_SZ = 1_000; // size bound for in-memory cache for dataStore
+    private final long dsCacheSize = 1_000; // size bound for in-memory cache for dataStore
 
+    private final boolean inMem;
 
+    /**
+     * Return a new DataStore object.
+     * @param opts  map of option strings
+     */
     public DataStore(Map<String, Object> opts) {
-        this.opts = opts;
 
         if ((opts.get("--memory") != null && (Boolean) opts.get("--memory"))
                 || opts.get("--log-path") == null) {
-            // in-memory dataSture case
-            isPersistent = false;
             this.logDir = null;
-            cache = buildMemoryDS();
+            cache = buildMemoryDs();
+            inMem = true;
         } else {
-            // persistent dataSture case
-            isPersistent = true;
             this.logDir = (String) opts.get("--log-path");
-            cache = buildPersistentDS();
+            cache = buildPersistentDs();
+            inMem = false;
         }
     }
 
     /**
      * obtain an in-memory cache, no content loader, no writer, no size limit.
-     * @return
+     * @return  new LoadingCache for the DataStore
      */
-    private LoadingCache<String, String> buildMemoryDS() {
-        LoadingCache<String, String> cache = Caffeine
-                .newBuilder()
-                .recordStats()
-                .build(k -> null);
-        return cache;
+    private Cache<String, Object> buildMemoryDs() {
+        return Caffeine.newBuilder().build(k -> null);
+    }
+
+
+    public static int getChecksum(byte[] bytes) {
+        Hasher hasher = Hashing.crc32c().newHasher();
+        for (byte a : bytes) {
+            hasher.putByte(a);
+        }
+
+        return hasher.hash().asInt();
     }
 
     /**
      * obtain a {@link LoadingCache}.
      * The cache is backed up by file-per-key uner {@link DataStore::logDir}.
-     * The cache size is bounded by {@link DataStore::DS_CACHE_SZ}.
+     * The cache size is bounded by {@link DataStore::dsCacheSize}.
      *
      * @return the cache object
      */
-    private LoadingCache<String, String> buildPersistentDS() {
-        LoadingCache<String, String> cache = Caffeine.newBuilder()
+    private Cache<String, Object> buildPersistentDs() {
+        return Caffeine.newBuilder()
                 .recordStats()
-                .writer(new CacheWriter<String, String>() {
+                .writer(new CacheWriter<String, Object>() {
                     @Override
-                    public synchronized void write(@Nonnull String key, @Nonnull String value) {
+                    public synchronized void write(@Nonnull String key, @Nonnull Object value) {
+
+                        if (value == NullValue.NULL_VALUE) {
+                            return;
+                        }
+
                         try {
-                            Path path = Paths.get(logDir + File.separator + key);
-                            Files.write(path, value.getBytes());
+                            Path path = Paths.get(logDir + File.separator + key + EXTENSION);
+                            Path tmpPath = Paths.get(logDir + File.separator + key + EXTENSION + ".tmp");
+
+                            String jsonPayload = JsonUtils.parser.toJson(value, value.getClass());
+                            byte[] bytes = jsonPayload.getBytes();
+
+                            ByteBuffer buffer = ByteBuffer.allocate(bytes.length
+                                    + Integer.BYTES);
+                            buffer.putInt(getChecksum(bytes));
+                            buffer.put(bytes);
+                            Files.write(tmpPath, buffer.array(), StandardOpenOption.CREATE,
+                                    StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.SYNC);
+                            Files.move(tmpPath, path, StandardCopyOption.REPLACE_EXISTING,
+                                    StandardCopyOption.ATOMIC_MOVE);
+                            syncDirectory(logDir);
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
                     }
 
                     @Override
-                    public synchronized void delete(@Nonnull String key, @Nullable String value, @Nonnull RemovalCause cause) {
+                    public synchronized void delete(@Nonnull String key,
+                                                    @Nullable Object value,
+                                                    @Nonnull RemovalCause cause) {
                         try {
                             Path path = Paths.get(logDir + File.separator + key);
                             Files.deleteIfExists(path);
@@ -104,77 +147,70 @@ public class DataStore implements IDataStore {
                         }
                     }
                 })
-            .maximumSize(DS_CACHE_SZ)
-            .build(key -> {
-                    try {
-                        Path path = Paths.get(logDir + File.separator + key);
-                        if (Files.notExists(path)) {
-                            return null;
-                        }
-                        return new String(Files.readAllBytes(path));
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
-
-        return cache;
+                .maximumSize(dsCacheSize)
+                .build();
     }
 
     @Override
-    public synchronized  <T> void put(Class<T> tClass, String prefix, String key, T value) {
-        cache.put(getKey(prefix, key), JSONUtils.parser.toJson(value, tClass));
+    public synchronized  <T> void put(Class<T> tclass, String prefix, String key, T value) {
+        cache.put(getKey(prefix, key), value);
     }
 
-    @Override
-    public synchronized  <T> T get(Class<T> tClass, String prefix, String key) {
-        String json = cache.get(getKey(prefix, key));
-        return getObject(json, tClass);
+    private <T> T load(Class<T> tClass, String key) {
+        try {
+            Path path = Paths.get(logDir + File.separator + key + EXTENSION);
+            if (Files.notExists(path)) {
+                return null;
+            }
+            byte[] bytes = Files.readAllBytes(path);
+            ByteBuffer buf = ByteBuffer.wrap(bytes);
+            int checksum = buf.getInt();
+            byte[] strBytes = Arrays.copyOfRange(bytes, 4, bytes.length);
+            if (checksum != getChecksum(strBytes)) {
+                throw new DataCorruptionException();
+            }
+
+            String json = new String(strBytes);
+            T val = JsonUtils.parser.fromJson(json, tClass);
+            return val;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
-     * This is an atomic conditional get/put: If the key is not found, then the specified value is inserted.
-     * It returns the latest value, either the original one found, or the newly inserted value
-     * @param tClass type of value
-     * @param prefix prefix part of key
-     * @param key suffice part of key
-     * @param value value to be conditionally accepted
-     * @param <T> value class
-     * @return the latest value in the cache
+     * Since the cache can't maintain key->null mappings, this enum
+     * is a place holder for null to allow keys to map to null.
      */
-    public <T> T get(Class<T> tClass, String prefix, String key, T value) {
-        String keyString = getKey(prefix, key);
-        String json = cache.get(keyString, k -> JSONUtils.parser.toJson(value, tClass));
-        return getObject(json, tClass);
+    private enum NullValue {
+        NULL_VALUE
     }
 
     @Override
-    public synchronized  <T> List<T> getAll(Class<T> tClass, String prefix) {
-        List<T> list = new ArrayList<T>();
-        for (Map.Entry<String, String> entry : cache.asMap().entrySet()) {
-            if (entry.getKey().startsWith(prefix)) {
-                list.add(getObject(entry.getValue(), tClass));
+    public synchronized <T> T get(Class<T> tclass, String prefix, String key) {
+        String path = getKey(prefix, key);
+        Object val = cache.get(path, k -> {
+            if (!inMem) {
+                T loadedVal = load(tclass, path);
+                if (loadedVal != null) {
+                    return loadedVal;
+                }
             }
-        }
-        return list;
+
+            // We need to maintain a path -> null mapping for keys that were loaded, but
+            // were empty. This is required to prevent loading an empty key more than once, which is expensive.
+            return NullValue.NULL_VALUE;
+        });
+        
+        return val == NullValue.NULL_VALUE ? null : (T) val;
     }
 
     @Override
-    public synchronized <T> void delete(Class<T> tClass, String prefix, String key) {
+    public synchronized <T> void delete(Class<T> tclass, String prefix, String key) {
         cache.invalidate(getKey(prefix, key));
-    }
-
-    // Helper methods
-
-    private <T> T getObject(String json, Class<T> tClass) {
-        return isNotNull(json) ? JSONUtils.parser.fromJson(json, tClass) : null;
     }
 
     private String getKey(String prefix, String key) {
         return prefix + "_" + key;
     }
-
-    private boolean isNotNull(String value) {
-        return value != null && !value.trim().isEmpty();
-    }
-
 }

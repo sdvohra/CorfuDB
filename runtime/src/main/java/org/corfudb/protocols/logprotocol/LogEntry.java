@@ -1,6 +1,13 @@
 package org.corfudb.protocols.logprotocol;
 
 import io.netty.buffer.ByteBuf;
+
+import java.util.Arrays;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
@@ -10,11 +17,6 @@ import org.corfudb.protocols.wireprotocol.ILogData;
 import org.corfudb.runtime.CorfuRuntime;
 import org.corfudb.util.serializer.ICorfuSerializable;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * Created by mwei on 1/8/16.
@@ -27,14 +29,14 @@ public class LogEntry implements ICorfuSerializable {
             Arrays.stream(LogEntryType.values())
                     .collect(Collectors.toMap(LogEntryType::asByte, Function.identity()));
 
-    ;
     /**
-     * The runtime to use
+     * The runtime to use.
      */
     @Setter
     protected CorfuRuntime runtime;
+
     /**
-     * The type of log entry
+     * The type of log entry.
      */
     @Getter
     LogEntryType type;
@@ -100,7 +102,7 @@ public class LogEntry implements ICorfuSerializable {
      * For example, an aborted transaction does not change the content of the stream.
      *
      * @return True, if the entry changes the contents of the stream,
-     * False otherwise.
+     *         False otherwise.
      */
     public boolean isMutation(UUID stream) {
         return true;
@@ -111,9 +113,9 @@ public class LogEntry implements ICorfuSerializable {
         // Base Messages
         NOP(0, LogEntry.class),
         SMR(1, SMREntry.class),
-        STREAM_COW(4, StreamCOWEntry.class),
         MULTIOBJSMR(7, MultiObjectSMREntry.class),
-        MULTISMR(8, MultiSMREntry.class);
+        MULTISMR(8, MultiSMREntry.class),
+        CHECKPOINT(10, CheckpointEntry.class);
 
         public final int type;
         public final Class<? extends LogEntry> entryType;

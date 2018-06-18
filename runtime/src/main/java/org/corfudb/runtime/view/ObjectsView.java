@@ -1,14 +1,27 @@
 package org.corfudb.runtime.view;
 
+import com.sun.xml.internal.bind.v2.TODO;
+
+import java.util.Arrays;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+import javax.annotation.Nonnull;
+
 import lombok.Data;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+
 import org.corfudb.protocols.wireprotocol.TxResolutionInfo;
 import org.corfudb.runtime.CorfuRuntime;
+import org.corfudb.runtime.Tracer;
 import org.corfudb.runtime.exceptions.AbortCause;
+import org.corfudb.runtime.exceptions.NetworkException;
 import org.corfudb.runtime.exceptions.TransactionAbortedException;
+import org.corfudb.runtime.exceptions.unrecoverable.UnrecoverableCorfuError;
 import org.corfudb.runtime.object.CorfuCompileWrapperBuilder;
 import org.corfudb.runtime.object.ICorfuSMR;
 import org.corfudb.runtime.object.transactions.AbstractTransactionalContext;
@@ -17,11 +30,6 @@ import org.corfudb.runtime.object.transactions.TransactionType;
 import org.corfudb.runtime.object.transactions.TransactionalContext;
 import org.corfudb.runtime.view.stream.IStreamView;
 import org.corfudb.util.serializer.Serializers;
-
-import java.util.Arrays;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A view of the objects inside a Corfu instance.
@@ -34,7 +42,7 @@ public class ObjectsView extends AbstractView {
      * The Transaction stream is used to log/write successful transactions from different clients.
      * Transaction data and meta data can be obtained by reading this stream.
      */
-    static public UUID TRANSACTION_STREAM_ID = CorfuRuntime.getStreamID("Transaction_Stream");
+    public static UUID TRANSACTION_STREAM_ID = CorfuRuntime.getStreamID("Transaction_Stream");
 
     @Getter
     @Setter
@@ -44,7 +52,7 @@ public class ObjectsView extends AbstractView {
     @Getter
     Map<ObjectID, Object> objectCache = new ConcurrentHashMap<>();
 
-    public ObjectsView(CorfuRuntime runtime) {
+    public ObjectsView(@Nonnull final CorfuRuntime runtime) {
         super(runtime);
     }
 
@@ -58,53 +66,23 @@ public class ObjectsView extends AbstractView {
     }
 
     /**
-     * Creates a copy-on-append copy of an object.
-     *
-     * @param obj         The object that should be copied.
-     * @param destination The destination ID of the object to be copied.
-     * @param <T>         The type of the object being copied.
-     * @return A copy-on-append copy of the object.
-     */
-    @SuppressWarnings("unchecked")
-    public <T> T copy(@NonNull T obj, @NonNull UUID destination) {
-        ICorfuSMR<T> proxy = (ICorfuSMR<T>)obj;
-        ObjectID oid = new ObjectID(destination, proxy.getCorfuSMRProxy().getObjectType());
-        return (T) objectCache.computeIfAbsent(oid, x -> {
-            IStreamView sv = runtime.getStreamsView().copy(proxy.getCorfuStreamID(),
-                    destination, proxy.getCorfuSMRProxy().getVersion());
-            try {
-                return
-                        CorfuCompileWrapperBuilder.getWrapper(proxy.getCorfuSMRProxy().getObjectType(),
-                                runtime, sv.getID(), null, Serializers.JSON);
-            }
-            catch (Exception ex) {
-                throw new RuntimeException(ex);
-            }
-        });
-    }
-
-    /**
-     * Creates a copy-on-append copy of an object.
-     *
-     * @param obj         The object that should be copied.
-     * @param destination The destination stream name of the object to be copied.
-     * @param <T>         The type of the object being copied.
-     * @return A copy-on-append copy of the object.
-     */
-    @SuppressWarnings("unchecked")
-    public <T> T copy(@NonNull T obj, @NonNull String destination) {
-        return copy(obj, CorfuRuntime.getStreamID(destination));
-    }
-
-    /**
      * Begins a transaction on the current thread.
      * Automatically selects the correct transaction strategy.
      * Modifications to objects will not be visible
      * to other threads or clients until TXEnd is called.
      */
+    @SuppressWarnings({"checkstyle:methodname", "checkstyle:abbreviation"})
     public void TXBegin() {
+        TransactionType type = TransactionType.OPTIMISTIC;
+
+        /* If it is a nested transaction, inherit type of parent */
+        if (TransactionalContext.isInTransaction()) {
+            type = TransactionalContext.getCurrentContext().getBuilder().getType();
+            log.trace("Inheriting parent's transaction type {}", type);
+        }
+
         TXBuild()
-                .setType(TransactionType.OPTIMISTIC)
+                .setType(type)
                 .begin();
     }
 
@@ -112,6 +90,7 @@ public class ObjectsView extends AbstractView {
      * builder.
      * @return  A transaction builder to build a transaction with.
      */
+    @SuppressWarnings({"checkstyle:methodname", "checkstyle:abbreviation"})
     public TransactionBuilder TXBuild() {
         return new TransactionBuilder(runtime);
     }
@@ -121,6 +100,7 @@ public class ObjectsView extends AbstractView {
      * Modifications to objects in the current transactional
      * context will be discarded.
      */
+    @SuppressWarnings({"checkstyle:methodname", "checkstyle:abbreviation"})
     public void TXAbort() {
         AbstractTransactionalContext context = TransactionalContext.getCurrentContext();
         if (context == null) {
@@ -129,7 +109,7 @@ public class ObjectsView extends AbstractView {
             TxResolutionInfo txInfo = new TxResolutionInfo(
                     context.getTransactionID(), context.getSnapshotTimestamp());
             context.abortTransaction(new TransactionAbortedException(
-                    txInfo, null, AbortCause.USER));
+                    txInfo, null, AbortCause.USER, context));
             TransactionalContext.removeContext();
         }
     }
@@ -138,8 +118,9 @@ public class ObjectsView extends AbstractView {
      * Query whether a transaction is currently running.
      *
      * @return True, if called within a transactional context,
-     * False, otherwise.
+     *         False, otherwise.
      */
+    @SuppressWarnings({"checkstyle:methodname", "checkstyle:abbreviation"})
     public boolean TXActive() {
         return TransactionalContext.isInTransaction();
     }
@@ -147,10 +128,11 @@ public class ObjectsView extends AbstractView {
     /**
      * End a transaction on the current thread.
      *
-     * @throws TransactionAbortedException If the transaction could not be executed successfully.
-     *
      * @return The address of the transaction, if it commits.
+     *
+     * @throws TransactionAbortedException If the transaction could not be executed successfully.
      */
+    @SuppressWarnings({"checkstyle:methodname", "checkstyle:abbreviation"})
     public long TXEnd()
             throws TransactionAbortedException {
         AbstractTransactionalContext context = TransactionalContext.getCurrentContext();
@@ -158,16 +140,42 @@ public class ObjectsView extends AbstractView {
             log.warn("Attempted to end a transaction, but no transaction active!");
             return AbstractTransactionalContext.UNCOMMITTED_ADDRESS;
         } else {
-            // TODO remove this, doesn't belong here!
             long totalTime = System.currentTimeMillis() - context.getStartTime();
-            log.trace("TXCommit[{}] time={} ms",
-                    context, totalTime);
-            // TODO up to here
+            log.trace("TXEnd[{}] time={} ms", context, totalTime);
+            try {
+                long retVal = TransactionalContext.getCurrentContext().commitTransaction();
+                Tracer.getTracer().log("TXEnd [type]");
+                return retVal;
+            } catch (TransactionAbortedException e) {
+                log.warn("TXEnd[{}] Aborted Exception {}", context, e);
+                TransactionalContext.getCurrentContext().abortTransaction(e);
+                throw e;
+            } catch (NetworkException e) {
+                log.warn("TXEnd[{}] Network Exception {}", context, e);
+                long snapshotTimestamp;
                 try {
-                    return TransactionalContext.getCurrentContext().commitTransaction();
-                } finally {
-                    TransactionalContext.removeContext();
+                    snapshotTimestamp = context.getSnapshotTimestamp();
+                } catch (NetworkException ne) {
+                    snapshotTimestamp = -1L;
                 }
+                TxResolutionInfo txInfo = new TxResolutionInfo(context.getTransactionID(),
+                    snapshotTimestamp);
+                TransactionAbortedException tae = new TransactionAbortedException(txInfo,
+                    null, null, AbortCause.NETWORK, e, context);
+                context.abortTransaction(tae);
+                throw tae;
+
+            } catch (Exception e) {
+               log.error("TXEnd[{}]: Unexpected exception", context, e);
+                TxResolutionInfo txInfo = new TxResolutionInfo(context.getTransactionID(),
+                    -1L);
+                TransactionAbortedException tae = new TransactionAbortedException(txInfo,
+                    null, null, AbortCause.UNDEFINED, e, context);
+                context.abortTransaction(tae);
+                throw new UnrecoverableCorfuError("Unexpected exception during commit", e);
+            } finally {
+                TransactionalContext.removeContext();
+            }
         }
     }
 
@@ -195,8 +203,13 @@ public class ObjectsView extends AbstractView {
     }
 
     @Data
+    @SuppressWarnings({"checkstyle:abbreviation"})
     public static class ObjectID<T> {
         final UUID streamID;
         final Class<T> type;
+
+        public String toString() {
+            return "[" + streamID + ", " + type.getSimpleName() + "]";
+        }
     }
 }

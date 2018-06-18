@@ -2,8 +2,8 @@
 
 [![Join the chat at https://gitter.im/CorfuDB/CorfuDB](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/CorfuDB/CorfuDB?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-[![Build Status](https://travis-ci.org/CorfuDB/CorfuDB.svg?branch=master)](https://travis-ci.org/CorfuDB/CorfuDB) [![Coverage Status](https://coveralls.io/repos/CorfuDB/CorfuDB/badge.svg?branch=master)](https://coveralls.io/r/CorfuDB/CorfuDB?branch=master) 
-[![Stories in Ready](https://badge.waffle.io/CorfuDB/CorfuDB.png?label=ready&title=Ready)](https://waffle.io/CorfuDB/CorfuDB)
+[![Build Status](https://travis-ci.org/CorfuDB/CorfuDB.svg?branch=master)](https://travis-ci.org/CorfuDB/CorfuDB) 
+[![codecov](https://codecov.io/gh/CorfuDB/CorfuDB/branch/master/graph/badge.svg)](https://codecov.io/gh/CorfuDB/CorfuDB)
 
 
 Corfu is a consistency platform designed around the abstraction
@@ -231,10 +231,20 @@ You'll want to add localhost:9001 as a new logunit to the existing segment:
 This adds the log unit at localhost:9001 to the only segment in the system.
 to learn more about segments, see the [Corfu wiki](https://github.com/CorfuDB/CorfuDB/wiki).
 
-To scale Corfu, we add additional ``stripes''. To add an additional stripe, 
-start a new ```corfu_server``` on port 9002 and edit the layout again:
+To scale Corfu, we add additional ``stripes''. To add an additional stripe, first 
+start a new ```corfu_server``` on port 9002:
+```
+./CorfuDB/bin/corfu_server -m -M localhost:9000 9002
+```
+Add this layout server to the previous deployment by editing the layout:
 ```
 $ ./CorfuDB/bin/corfu_layouts edit -c localhost:9000,localhost:9001
+```
+The layoutServers line should read:
+```json
+  "layoutServers": [
+    "localhost:9000", "localhost:9001", "localhost:9002"
+  ],
 ```
 This time we add localhost:9002 as a new stripe.
 

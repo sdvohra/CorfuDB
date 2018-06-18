@@ -35,7 +35,7 @@ public class PlainTextSaslNettyServer extends SimpleChannelInboundHandler<ByteBu
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, ByteBuf buf)
-        throws Exception {
+            throws Exception {
 
         byte[] msg = new byte[buf.readableBytes()];
         buf.getBytes(0, msg);
@@ -50,6 +50,7 @@ public class PlainTextSaslNettyServer extends SimpleChannelInboundHandler<ByteBu
         }
 
         if (saslServer.isComplete()) {
+            log.debug("channelRead0: Sasl handshake successful, uninstalling handler");
             ctx.pipeline().remove(this);
         }
     }

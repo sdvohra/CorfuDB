@@ -1,44 +1,56 @@
 package org.corfudb.runtime.object.transactions;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.stream.IntStream;
+
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+
 import org.corfudb.protocols.logprotocol.ISMRConsumable;
 import org.corfudb.protocols.logprotocol.SMREntry;
 import org.corfudb.protocols.wireprotocol.ILogData;
 import org.corfudb.protocols.wireprotocol.TxResolutionInfo;
+import org.corfudb.runtime.CorfuRuntime;
+import org.corfudb.runtime.Tracer;
+import org.corfudb.runtime.exceptions.AbortCause;
+import org.corfudb.runtime.exceptions.AppendException;
+import org.corfudb.runtime.exceptions.OverwriteException;
 import org.corfudb.runtime.exceptions.TransactionAbortedException;
+import org.corfudb.runtime.exceptions.TrimmedException;
 import org.corfudb.runtime.object.ICorfuSMRAccess;
 import org.corfudb.runtime.object.ICorfuSMRProxyInternal;
 import org.corfudb.runtime.object.VersionLockedObject;
-
-import java.util.*;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-import java.util.stream.IntStream;
 
 import static org.corfudb.runtime.view.ObjectsView.TRANSACTION_STREAM_ID;
 
 /** A Corfu optimistic transaction context.
  *
- * Optimistic transactions in Corfu provide the following isolation guarantees:
+ * <p>Optimistic transactions in Corfu provide the following isolation guarantees:
  *
- * (1) Read-your-own Writes:
+ * <p>(1) Read-your-own Writes:
  *  Reads in a transaction are guaranteed to observe a write in the same
  *  transaction, if a write happens before
  *      the read.
  *
- * (2) Opacity:
+ * <p>(2) Opacity:
  *  Read in a transaction observe the state of the system ("snapshot") as of the time of the
  *      first read which occurs in the transaction ("first read
  *      timestamp"), except in case (1) above where they observe the own tranasction's writes.
  *
- * (3) Atomicity:
+ * <p>(3) Atomicity:
  *  Writes in a transaction are guaranteed to commit atomically,
  *     and commit if and only if none of the objects which were
  *     read (the "read set") were modified between the first read
  *     ("first read timestamp") and the time of commit.
  *
- * Created by mwei on 4/4/16.
+ * <p>Created by mwei on 4/4/16.
  */
 @Slf4j
 public class OptimisticTransactionalContext extends AbstractTransactionalContext {
@@ -57,11 +69,11 @@ public class OptimisticTransactionalContext extends AbstractTransactionalContext
      * Access within optimistic transactional context is implemented
      * in via proxy.access() as follows:
      *
-     * 1. First, we try to grab a read-lock on the proxy, and hope to "catch" the proxy in the
+     * <p>1. First, we try to grab a read-lock on the proxy, and hope to "catch" the proxy in the
      * snapshot version. If this succeeds, we invoke the corfu-object access method, and
      * un-grab the read-lock.
      *
-     * 2. Otherwise, we grab a write-lock on the proxy and bring it to the correct
+     * <p>2. Otherwise, we grab a write-lock on the proxy and bring it to the correct
      * version
      * - Inside proxy.setAsOptimisticStream, if there are currently optimistic
      * updates on the proxy, we roll them back.  Then, we set this
@@ -82,29 +94,37 @@ public class OptimisticTransactionalContext extends AbstractTransactionalContext
         // Next, we sync the object, which will bring the object
         // to the correct version, reflecting any optimistic
         // updates.
+        // Get snapshot timestamp in advance so it is not performed under the VLO lock
+        long ts = getSnapshotTimestamp();
         return proxy
                 .getUnderlyingObject()
-                .access(o -> (
-                        getWriteSetEntrySize(proxy.getStreamID()) == 0 && // No updates
-                        o.getVersionUnsafe() == getSnapshotTimestamp() && // And at the correct timestamp
-                        (o.getOptimisticStreamUnsafe() == null ||
-                                o.getOptimisticStreamUnsafe()
-                                        .isStreamCurrentContextThreadCurrentContext() )
-                ),
-                o -> {
-                    // Swap ourselves to be the active optimistic stream.
-                    // Inside setAsOptimisticStream, if there are
-                    // currently optimistic updates on the object, we
-                    // roll them back.  Then, we set this context as  the
-                    // object's new optimistic context.
-                    setAsOptimisticStream(o);
+                .access(o -> {
+                            WriteSetSMRStream stream = o.getOptimisticStreamUnsafe();
 
-                    // inside syncObjectUnsafe, depending on the object
-                    // version, we may need to undo or redo
-                    // committed changes, or apply forward committed changes.
-                    o.syncObjectUnsafe(getSnapshotTimestamp());
-                },
-                o -> accessFunction.access(o)
+                            // Obtain the stream position as when transaction context last
+                            // remembered it.
+                            long streamReadPosition = getKnownStreamPosition()
+                                    .getOrDefault(proxy.getStreamID(), ts);
+
+                            return (
+                                    (stream == null || stream.isStreamCurrentContextThreadCurrentContext())
+                                    && (stream != null && getWriteSetEntrySize(proxy.getStreamID()) == stream.pos() + 1
+                                       || (getWriteSetEntrySize(proxy.getStreamID()) == 0 /* No updates. */
+                                          && o.getVersionUnsafe() == streamReadPosition) /* Match timestamp. */
+                                    )
+                            );
+                        },
+                        o -> {
+                            // inside syncObjectUnsafe, depending on the object
+                            // version, we may need to undo or redo
+                            // committed changes, or apply forward committed changes.
+                            syncWithRetryUnsafe(o, getSnapshotTimestamp(), proxy, this::setAsOptimisticStream);
+
+                            // Update the global positions map. The value obtained from underlying
+                            // object must be under object's write-lock.
+                            getKnownStreamPosition().put(proxy.getStreamID(), o.getVersionUnsafe());
+                        },
+                        accessFunction::access
         );
     }
 
@@ -112,7 +132,8 @@ public class OptimisticTransactionalContext extends AbstractTransactionalContext
      * if a Corfu object's method is an Accessor-Mutator, then although the mutation is delayed,
      * it needs to obtain the result by invoking getUpcallResult() on the optimistic stream.
      *
-     * This is similar to the second stage of access(), accept working on the optimistic stream instead of the
+     * <p>This is similar to the second stage of access(), accept working
+     * on the optimistic stream instead of the
      * underlying stream.- grabs the write-lock on the proxy.
      * - uses proxy.setAsOptimisticStream in order to set itself as the proxy optimistic context,
      *   including rolling-back current optimistic changes, if any.
@@ -130,22 +151,23 @@ public class OptimisticTransactionalContext extends AbstractTransactionalContext
 
         // if we have a result, return it.
         SMREntry wrapper = getWriteSetEntryList(proxy.getStreamID()).get((int)timestamp);
-        if (wrapper != null && wrapper.isHaveUpcallResult()){
+        if (wrapper != null && wrapper.isHaveUpcallResult()) {
             return wrapper.getUpcallResult();
         }
         // Otherwise, we need to sync the object
+        // Get snapshot timestamp in advance so it is not performed under the VLO lock
+        long ts = getSnapshotTimestamp();
         return proxy.getUnderlyingObject().update(o -> {
-            setAsOptimisticStream(o);
             log.trace("Upcall[{}] {} Sync'd", this,  timestamp);
-            o.syncObjectUnsafe(getSnapshotTimestamp());
+            syncWithRetryUnsafe(o, ts, proxy, this::setAsOptimisticStream);
             SMREntry wrapper2 = getWriteSetEntryList(proxy.getStreamID()).get((int)timestamp);
-            if (wrapper2 != null && wrapper2.isHaveUpcallResult()){
+            if (wrapper2 != null && wrapper2.isHaveUpcallResult()) {
                 return wrapper2.getUpcallResult();
             }
             // If we still don't have the upcall, this must be a bug.
-            throw new RuntimeException("Tried to get upcall during a transaction but" +
-                    " we don't have it even after an optimistic sync (asked for " + timestamp +
-                    " we have 0-" + (getWriteSetEntryList(proxy.getStreamID()).size() - 1) + ")");
+            throw new RuntimeException("Tried to get upcall during a transaction but"
+                    + " we don't have it even after an optimistic sync (asked for " + timestamp
+                    + " we have 0-" + (getWriteSetEntryList(proxy.getStreamID()).size() - 1) + ")");
         });
     }
 
@@ -158,26 +180,27 @@ public class OptimisticTransactionalContext extends AbstractTransactionalContext
      * @param <T>           Type of the underlying object
      */
     <T> void setAsOptimisticStream(VersionLockedObject<T> object) {
-        if (object.getOptimisticStreamUnsafe() == null ||
-                !object.getOptimisticStreamUnsafe()
-                        .isStreamCurrentContextThreadCurrentContext()) {
+        WriteSetSMRStream stream = object.getOptimisticStreamUnsafe();
+        if (stream == null
+                || !stream.isStreamCurrentContextThreadCurrentContext()) {
 
             // We are setting the current context to the root context of nested transactions.
             // Upon sync forward
             // the stream will replay every entries from all parent transactional context.
-            WriteSetSMRStream newSMRStream =
+            WriteSetSMRStream newSmrStream =
                     new WriteSetSMRStream(TransactionalContext.getTransactionStackAsList(),
                     object.getID());
 
-            newSMRStream.currentContext = 0;
-            object.setOptimisticStreamUnsafe(newSMRStream);
+            newSmrStream.currentContext = 0;
+            object.setOptimisticStreamUnsafe(newSmrStream);
         }
     }
 
     /** Logs an update. In the case of an optimistic transaction, this update
      * is logged to the write set for the transaction.
      *
-     * Return the "address" of the update; used for retrieving results from operations via getUpcallRestult.
+     * <p>Return the "address" of the update; used for retrieving results
+     * from operations via getUpcallRestult.
      *
      * @param proxy         The proxy making the request.
      * @param updateEntry   The timestamp of the request.
@@ -226,12 +249,17 @@ public class OptimisticTransactionalContext extends AbstractTransactionalContext
     public long commitTransaction() throws TransactionAbortedException {
         log.debug("TX[{}] request optimistic commit", this);
 
-        return getConflictSetAndCommit(() -> getReadSetInfo().getReadSetConflicts());
+        return getConflictSetAndCommit(getReadSetInfo());
     }
 
-    public long getConflictSetAndCommit(Supplier<Map<UUID, Set<Integer>>>
-                                       computeConflictSet) {
-
+    /**
+     * Commit with a given conflict set and return the address.
+     *
+     * @param conflictSet  conflict set used to check whether transaction can commit
+     * @return  the commit address
+     */
+    public long getConflictSetAndCommit(ConflictSetInfo conflictSet) {
+        long ts1 = System.nanoTime();
         if (TransactionalContext.isInNestedTransaction()) {
             getParentContext().addTransaction(this);
             commitAddress = AbstractTransactionalContext.FOLDED_ADDRESS;
@@ -247,7 +275,8 @@ public class OptimisticTransactionalContext extends AbstractTransactionalContext
         }
 
         // Write to the transaction stream if transaction logging is enabled
-        Set<UUID> affectedStreams = new HashSet<>(getWriteSetInfo().getWriteSet().getEntryMap().keySet());
+        Set<UUID> affectedStreams = new HashSet<>(getWriteSetInfo().getWriteSet()
+                .getEntryMap().keySet());
         if (this.builder.runtime.getObjectsView().isTransactionLogging()) {
             affectedStreams.add(TRANSACTION_STREAM_ID);
         }
@@ -256,33 +285,34 @@ public class OptimisticTransactionalContext extends AbstractTransactionalContext
         // This step currently happens all at once, and we get an
         // address of -1L if it is rejected.
         long address = -1L;
+        final TxResolutionInfo txInfo =
+            // TxResolution info:
+            // 1. snapshot timestamp
+            // 2. a map of conflict params, arranged by streamID's
+            // 3. a map of write conflict-params, arranged by
+            // streamID's
+            new TxResolutionInfo(getTransactionID(),
+                getSnapshotTimestamp(),
+                conflictSet.getHashedConflictSet(),
+                getWriteSetInfo().getHashedConflictSet());
 
         try {
             address = this.builder.runtime.getStreamsView()
-                    .append(
-
-                            // a set of stream-IDs that contains the affected streams
-                            affectedStreams,
-
-                            // a MultiObjectSMREntry that contains the update(s) to objects
-                            collectWriteSetEntries(),
-
-                            // TxResolution info:
-                            // 1. snapshot timestamp
-                            // 2. a map of conflict params, arranged by streamID's
-                            // 3. a map of write conflict-params, arranged by
-                            // streamID's
-                            new TxResolutionInfo(getTransactionID(),
-                                    getSnapshotTimestamp(),
-                                    computeConflictSet.get(),
-                                    collectWriteConflictParams())
-                    );
-        } catch (TransactionAbortedException ae) {
-            log.trace("Commit[{}] Rejected by sequencer", this);
-            abortTransaction(ae);
-
-            // rethrow the TXAbortedException
-            throw ae;
+                .append(
+                    // a set of stream-IDs that contains the affected streams
+                    affectedStreams,
+                    // a MultiObjectSMREntry that contains the update(s) to objects
+                    collectWriteSetEntries(),
+                    txInfo
+                );
+        } catch (AppendException oe) {
+            // We were overwritten (and the original snapshot is now conflicting),
+            // which means we must abort.
+            throw new TransactionAbortedException(txInfo, null, null,
+                AbortCause.CONFLICT, oe, this);
+        } finally {
+            long ts2 = System.nanoTime();
+            Tracer.getTracer().log("getConflictSetAndCommit [dur] " + (ts2 - ts1) + " [ids] " + affectedStreams);
         }
 
         log.trace("Commit[{}] Acquire address {}", this, address);
@@ -297,6 +327,15 @@ public class OptimisticTransactionalContext extends AbstractTransactionalContext
 
     /** Try to commit the optimistic updates to each proxy. */
     protected void tryCommitAllProxies() {
+        long ts1 = System.nanoTime();
+        try {
+            _tryCommitAllProxies();
+        } finally {
+            long ts2 = System.nanoTime();
+            Tracer.getTracer().log("tryCommitAllProxies [dur] " + (ts2 - ts1));
+        }
+    }
+    protected void _tryCommitAllProxies() {
         // First, get the committed entry
         // in order to get the backpointers
         // and the underlying SMREntries.
@@ -310,7 +349,7 @@ public class OptimisticTransactionalContext extends AbstractTransactionalContext
             // If some other client updated this object, sync
             // it forward to grab those updates
             x.getUnderlyingObject().syncObjectUnsafe(
-                        commitAddress-1);
+                        commitAddress - 1);
             // Also, be nice and transfer the undo
             // log from the optimistic updates
             // for this to work the write sets better
@@ -321,8 +360,8 @@ public class OptimisticTransactionalContext extends AbstractTransactionalContext
                     ((ISMRConsumable) committedEntry
                             .getPayload(this.getBuilder().runtime))
                     .getSMRUpdates(x.getStreamID());
-            if (committedWrites.size() ==
-                    entryWrites.size()) {
+            if (committedWrites.size()
+                    == entryWrites.size()) {
                 IntStream.range(0, committedWrites.size())
                         .forEach(i -> {
                             if (committedWrites.get(i)
@@ -366,7 +405,8 @@ public class OptimisticTransactionalContext extends AbstractTransactionalContext
     private OptimisticTransactionalContext getRootContext() {
         AbstractTransactionalContext atc = TransactionalContext.getRootContext();
         if (atc != null && !(atc instanceof OptimisticTransactionalContext)) {
-            throw new RuntimeException("Attempted to nest two different transactional context types");
+            throw new RuntimeException("Attempted to nest two different "
+                    + "transactional context types");
         }
         return (OptimisticTransactionalContext)atc;
     }
@@ -387,7 +427,8 @@ public class OptimisticTransactionalContext extends AbstractTransactionalContext
             // Otherwise, fetch a read token from the sequencer the linearize
             // ourselves against.
             long currentTail = builder.runtime
-                    .getSequencerView().nextToken(Collections.emptySet(), 0).getToken().getTokenValue();
+                    .getSequencerView().nextToken(Collections.emptySet(),
+                            0).getToken().getTokenValue();
             log.trace("SnapshotTimestamp[{}] {}", this, currentTail);
             return currentTail;
         }

@@ -5,7 +5,7 @@
     <parent>
         <artifactId>corfu</artifactId>
         <groupId>org.corfudb</groupId>
-        <version>0.1-SNAPSHOT</version>
+        <version>0.2.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -54,17 +54,19 @@
                                         <filemode>755</filemode>
                                     </mapper>
                                 </data>
-                                <!-- infrastructure is a dependency of cmdlets so it is included -->
+                                <!-- systemd service script -->
                                 <data>
-                                    <src>${session.executionRootDirectory}/cmdlets/target/cmdlets-${project.version}-shaded.jar</src>
+                                    <src>src/deb/systemd/corfu-server.service</src>
                                     <type>file</type>
                                     <mapper>
                                         <type>perm</type>
-                                        <prefix>/usr/share/corfu/lib</prefix>
+                                        <prefix>/usr/lib/systemd/system</prefix>
+                                        <filemode>644</filemode>
                                     </mapper>
                                 </data>
+                                <!-- infrastructure is a dependency of cmdlets so it is included -->
                                 <data>
-                                    <src>${session.executionRootDirectory}/logReader/target/logReader-${project.version}-shaded.jar</src>
+                                    <src>${session.executionRootDirectory}/cmdlets/target/cmdlets-${project.version}-shaded.jar</src>
                                     <type>file</type>
                                     <mapper>
                                         <type>perm</type>

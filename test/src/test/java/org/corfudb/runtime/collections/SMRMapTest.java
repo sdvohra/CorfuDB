@@ -1,10 +1,26 @@
 package org.corfudb.runtime.collections;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.reflect.TypeToken;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
+import java.util.stream.IntStream;
+
 import lombok.Data;
 import lombok.Getter;
 import lombok.ToString;
+
 import org.corfudb.runtime.CorfuRuntime;
 import org.corfudb.runtime.exceptions.TransactionAbortedException;
 import org.corfudb.runtime.object.ICorfuSMR;
@@ -13,16 +29,6 @@ import org.corfudb.runtime.view.ObjectOpenOptions;
 import org.corfudb.util.serializer.Serializers;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.IntStream;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Created by mwei on 1/7/16.
@@ -61,6 +67,31 @@ public class SMRMapTest extends AbstractViewTest {
 
     @Test
     @SuppressWarnings("unchecked")
+    public void canReadWriteToSinglePrimitive()
+            throws Exception {
+        getRuntime().setCacheDisabled(true);
+        Map<Long, Double> testMap = getRuntime()
+                .getObjectsView()
+                .build()
+                .setStreamName("test")
+                .setSerializer(Serializers.PRIMITIVE)
+                .setTypeToken(new TypeToken<SMRMap<Long, Double>>() {})
+                .open();
+
+        final double PRIMITIVE_1 = 2.4;
+        final double PRIMITIVE_2 = 4.5;
+
+        testMap.clear();
+        assertThat(testMap.put(1L, PRIMITIVE_1))
+                .isNull();
+        assertThat(testMap.put(1L, PRIMITIVE_2))
+                .isEqualTo(PRIMITIVE_1);
+        assertThat(testMap.get(1L))
+                .isEqualTo(PRIMITIVE_2);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
     public void canWriteScanAndFilterToSingle()
             throws Exception {
         Map<String, String> corfuInstancesMap = getRuntime()
@@ -79,7 +110,22 @@ public class SMRMapTest extends AbstractViewTest {
                 .isNull();
         assertThat(corfuInstancesMap.put("d", "CorfuServer"))
                 .isNull();
-        List<String> corfuServerList = ((SMRMap)corfuInstancesMap).scanAndFilter(p -> p.equals("CorfuServer"));
+
+        // ScanAndFilterByEntry
+        Predicate<Map.Entry<String, String>> valuePredicate =
+                p -> p.getValue().equals("CorfuServer");
+        Collection<Map.Entry<String, String>> filteredMap = ((SMRMap)corfuInstancesMap)
+                .scanAndFilterByEntry(valuePredicate);
+
+        assertThat(filteredMap.size()).isEqualTo(2);
+
+        for(Map.Entry<String, String> corfuInstance : filteredMap) {
+            assertThat(corfuInstance.getValue()).isEqualTo("CorfuServer");
+        }
+
+        // ScanAndFilter (Deprecated Method)
+        List<String> corfuServerList = ((SMRMap)corfuInstancesMap)
+                .scanAndFilter(p -> p.equals("CorfuServer"));
 
         assertThat(corfuServerList.size()).isEqualTo(2);
 
@@ -230,6 +276,9 @@ public class SMRMapTest extends AbstractViewTest {
     public void loadsFollowedByGetsConcurrentMultiView()
             throws Exception {
         r.setBackpointersDisabled(true);
+        // Increasing hole fill delay to avoid intermittent AppendExceptions.
+        final int longHoleFillRetryLimit = 50;
+        r.getParameters().setHoleFillRetry(longHoleFillRetryLimit);
 
         final int num_threads = 5;
         final int num_records = 1000;

@@ -1,13 +1,22 @@
 package org.corfudb.runtime.view.replication;
 
+import com.google.common.collect.Range;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import javax.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.corfudb.protocols.wireprotocol.ILogData;
+import org.corfudb.protocols.wireprotocol.LogData;
 import org.corfudb.runtime.exceptions.OverwriteException;
 import org.corfudb.runtime.exceptions.RecoveryException;
+import org.corfudb.runtime.view.RuntimeLayout;
 import org.corfudb.runtime.view.Layout;
 import org.corfudb.util.CFUtils;
 
-import javax.annotation.Nullable;
+
 
 /**
  * Created by mwei on 4/6/17.
@@ -19,11 +28,13 @@ public class ChainReplicationProtocol extends AbstractReplicationProtocol {
         super(holeFillPolicy);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public void write(Layout layout, ILogData data) throws OverwriteException {
+    public void write(RuntimeLayout runtimeLayout, ILogData data) throws OverwriteException {
         final long globalAddress = data.getGlobalAddress();
-        int numUnits = layout.getSegmentLength(globalAddress);
+        int numUnits = runtimeLayout.getLayout().getSegmentLength(globalAddress);
 
         // To reduce the overhead of serialization, we serialize only the
         // first time we write, saving when we go down the chain.
@@ -31,49 +42,110 @@ public class ChainReplicationProtocol extends AbstractReplicationProtocol {
                      data.getSerializedForm()) {
             log.trace("Write[{}]: chain head {}/{}", globalAddress, 1, numUnits);
             // In chain replication, we start at the chain head.
-                try {
-                    CFUtils.getUninterruptibly(
-                            layout.getLogUnitClient(globalAddress, 0)
-                                    .write(sh.getSerialized())
-                            , OverwriteException.class);
-                    propagate(layout, globalAddress, sh.getSerialized());
-                } catch (OverwriteException oe) {
-                    // Some other wrote here (usually due to hole fill)
-                    // We need to invoke the recovery protocol, in case
-                    // the write wasn't driven to completion.
-                    recover(layout, globalAddress);
-                    throw oe;
-                }
+            try {
+                CFUtils.getUninterruptibly(
+                        runtimeLayout.getLogUnitClient(globalAddress, 0)
+                                .write(sh.getSerialized()),
+                        OverwriteException.class);
+                propagate(runtimeLayout, globalAddress, sh.getSerialized());
+            } catch (OverwriteException oe) {
+                // Some other wrote here (usually due to hole fill)
+                // We need to invoke the recovery protocol, in case
+                // the write wasn't driven to completion.
+                recover(runtimeLayout, globalAddress);
+                throw oe;
+            }
         }
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public ILogData peek(Layout layout, long globalAddress) {
-        int numUnits = layout.getSegmentLength(globalAddress);
+    public ILogData peek(RuntimeLayout runtimeLayout, long globalAddress) {
+        int numUnits = runtimeLayout.getLayout().getSegmentLength(globalAddress);
         log.trace("Read[{}]: chain {}/{}", globalAddress, numUnits, numUnits);
         // In chain replication, we read from the last unit, though we can optimize if we
         // know where the committed tail is.
-        ILogData ret =  CFUtils.getUninterruptibly(layout
-                .getLogUnitClient(globalAddress, numUnits - 1)
-                                    .read(globalAddress)).getReadSet()
+        ILogData ret = CFUtils.getUninterruptibly(
+                runtimeLayout
+                        .getLogUnitClient(globalAddress, numUnits - 1)
+                        .read(globalAddress)).getAddresses()
                 .getOrDefault(globalAddress, null);
         return ret == null || ret.isEmpty() ? null : ret;
     }
 
-    /** Propagate a write down the chain, ignoring
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Map<Long, ILogData> readAll(RuntimeLayout runtimeLayout, List<Long> globalAddresses) {
+        long startAddress = globalAddresses.iterator().next();
+        int numUnits = runtimeLayout.getLayout().getSegmentLength(startAddress);
+        log.trace("readAll[{}]: chain {}/{}", globalAddresses, numUnits, numUnits);
+
+        Map<Long, LogData> logResult = CFUtils.getUninterruptibly(
+                runtimeLayout
+                        .getLogUnitClient(startAddress, numUnits - 1)
+                        .read(globalAddresses)).getAddresses();
+
+        //in case of a hole, do a normal read and use its hole fill policy
+        Map<Long, ILogData> returnResult = new TreeMap<>();
+        for (Map.Entry<Long, LogData> entry : logResult.entrySet()) {
+            ILogData value = entry.getValue();
+            if (value == null || value.isEmpty()) {
+                value = read(runtimeLayout, entry.getKey());
+            }
+
+            returnResult.put(entry.getKey(), value);
+        }
+
+        return returnResult;
+    }
+
+    @Override
+    public Map<Long, ILogData> readRange(RuntimeLayout runtimeLayout, Set<Long> globalAddresses) {
+        Range<Long> range = Range.encloseAll(globalAddresses);
+        long startAddress = range.lowerEndpoint();
+        long endAddress = range.upperEndpoint();
+        int numUnits = runtimeLayout.getLayout().getSegmentLength(startAddress);
+        log.trace("readRange[{}-{}]: chain {}/{}", startAddress, endAddress, numUnits, numUnits);
+
+        Map<Long, LogData> logResult = CFUtils.getUninterruptibly(
+                runtimeLayout
+                        .getLogUnitClient(startAddress, numUnits - 1)
+                        .read(range)).getAddresses();
+
+        //in case of a hole, do a normal read and use its hole fill policy
+        Map<Long, ILogData> returnResult = new TreeMap<>();
+        for (Map.Entry<Long, LogData> entry : logResult.entrySet()) {
+            ILogData value = entry.getValue();
+            if (value == null || value.isEmpty()) {
+                value = read(runtimeLayout, entry.getKey());
+            }
+
+            returnResult.put(entry.getKey(), value);
+        }
+
+        return returnResult;
+    }
+
+    /**
+     * Propagate a write down the chain, ignoring
      * any overwrite errors. It is expected that the
      * write has already successfully completed at
      * the head of the chain.
      *
-     * @param layout        The layout to use for propagation.
+     * @param runtimeLayout The epoch stamped client containing the layout to use for propagation.
      * @param globalAddress The global address to start
      *                      writing at.
      * @param data          The data to propagate, or NULL,
      *                      if it is to be a hole.
      */
-    protected void propagate(Layout layout, long globalAddress, @Nullable ILogData data) {
-        int numUnits = layout.getSegmentLength(globalAddress);
+    protected void propagate(RuntimeLayout runtimeLayout,
+                             long globalAddress,
+                             @Nullable ILogData data) {
+        int numUnits = runtimeLayout.getLayout().getSegmentLength(globalAddress);
 
         for (int i = 1; i < numUnits; i++) {
             log.trace("Propogate[{}]: chain {}/{}", globalAddress, i + 1, numUnits);
@@ -82,11 +154,12 @@ public class ChainReplicationProtocol extends AbstractReplicationProtocol {
             try {
                 if (data != null) {
                     CFUtils.getUninterruptibly(
-                            layout.getLogUnitClient(globalAddress, i)
-                                    .write(data)
-                            , OverwriteException.class);
+                            runtimeLayout.getLogUnitClient(globalAddress, i)
+                                    .write(data),
+                            OverwriteException.class);
                 } else {
-                    CFUtils.getUninterruptibly(layout.getLogUnitClient(globalAddress, i)
+                    CFUtils.getUninterruptibly(runtimeLayout
+                            .getLogUnitClient(globalAddress, i)
                             .fillHole(globalAddress), OverwriteException.class);
                 }
             } catch (OverwriteException oe) {
@@ -99,28 +172,30 @@ public class ChainReplicationProtocol extends AbstractReplicationProtocol {
      * driving it to completion by invoking the recovery
      * protocol.
      *
-     * When this function returns the given globalAddress
+     * <p>When this function returns the given globalAddress
      * is guaranteed to contain a committed value.
      *
-     * If there was no data previously written at the address,
+     * <p>If there was no data previously written at the address,
      * this function will throw a runtime exception. The
      * recovery protocol should -only- be invoked if we
      * previously were overwritten.
      *
-     * @oaram layout            The layout to use for the recovery.
+     * @param runtimeLayout     The RuntimeLayout to use for the recovery.
      * @param globalAddress     The global address to drive
      *                          the recovery protocol
      *
      */
-    protected void recover(Layout layout, long globalAddress) {
+    protected void recover(RuntimeLayout runtimeLayout, long globalAddress) {
+        final Layout layout = runtimeLayout.getLayout();
         // In chain replication, we started writing from the head,
         // and propagated down to the tail. To recover, we start
         // reading from the head, which should have the data
         // we are trying to recover
         int numUnits = layout.getSegmentLength(globalAddress);
         log.debug("Recover[{}]: read chain head {}/{}", globalAddress, 1, numUnits);
-        ILogData ld = CFUtils.getUninterruptibly(layout.getLogUnitClient(globalAddress, 0)
-                .read(globalAddress)).getReadSet().getOrDefault(globalAddress, null);
+        ILogData ld = CFUtils.getUninterruptibly(runtimeLayout
+                .getLogUnitClient(globalAddress, 0)
+                .read(globalAddress)).getAddresses().getOrDefault(globalAddress, null);
         // If nothing was at the head, this is a bug and we
         // should fail with a runtime exception, as there
         // was nothing to recover - if the head was removed
@@ -139,9 +214,8 @@ public class ChainReplicationProtocol extends AbstractReplicationProtocol {
             // in the chain.
             try {
                 CFUtils.getUninterruptibly(
-                        layout.getLogUnitClient(globalAddress, i)
-                                .write(ld)
-                        , OverwriteException.class);
+                        runtimeLayout.getLogUnitClient(globalAddress, i).write(ld),
+                        OverwriteException.class);
                 // We successfully recovered a write to this member of the chain
                 log.debug("Recover[{}]: recovered write at chain {}/{}", layout, i + 1, numUnits);
             } catch (OverwriteException oe) {
@@ -152,21 +226,24 @@ public class ChainReplicationProtocol extends AbstractReplicationProtocol {
         }
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    protected void holeFill(Layout layout, long globalAddress) {
-        int numUnits = layout.getSegmentLength(globalAddress);
+    protected void holeFill(RuntimeLayout runtimeLayout, long globalAddress) {
+        int numUnits = runtimeLayout.getLayout().getSegmentLength(globalAddress);
         log.trace("fillHole[{}]: chain head {}/{}", globalAddress, 1, numUnits);
         // In chain replication, we write synchronously to every unit in
         // the chain.
         try {
-            CFUtils.getUninterruptibly(layout.getLogUnitClient(globalAddress, 0)
+            CFUtils.getUninterruptibly(runtimeLayout
+                    .getLogUnitClient(globalAddress, 0)
                     .fillHole(globalAddress), OverwriteException.class);
-            propagate(layout, globalAddress, null);
+            propagate(runtimeLayout, globalAddress, null);
         } catch (OverwriteException oe) {
             // The hole-fill failed. We must ensure the other writer's
             // value is adopted before returning.
-            recover(layout, globalAddress);
+            recover(runtimeLayout, globalAddress);
         }
     }
 }

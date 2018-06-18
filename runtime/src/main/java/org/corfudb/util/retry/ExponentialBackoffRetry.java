@@ -1,20 +1,22 @@
 package org.corfudb.util.retry;
 
+import java.time.Duration;
+import java.util.Random;
+
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.corfudb.util.Sleep;
 
-import java.time.Duration;
-
-import java.util.Random;
 
 /**
  * This class implements a basic exponential backoff retry.
- * <p>
- * Created by mwei on 9/1/15.
+ *
+ * <p>Created by mwei on 9/1/15.
  */
 @Slf4j
-public class ExponentialBackoffRetry<E extends Exception, F extends Exception, G extends Exception, H extends Exception, O, A extends IRetry>
+public class ExponentialBackoffRetry<E extends Exception, F extends Exception,
+        G extends Exception, H extends Exception, O, A extends IRetry>
         extends AbstractRetry<E, F, G, H, O, ExponentialBackoffRetry> {
 
     private static final int DEFAULT_BASE = 2;
@@ -28,7 +30,7 @@ public class ExponentialBackoffRetry<E extends Exception, F extends Exception, G
     private Duration backoffDuration = DEFAULT_BACKOFF_DURATION;
 
     /**
-     * Base to multiply
+     * Base to multiply.
      */
     @Getter @Setter
     private int base = DEFAULT_BASE;
@@ -41,8 +43,7 @@ public class ExponentialBackoffRetry<E extends Exception, F extends Exception, G
     private float randomPortion = DEFAULT_RANDOM_PORTION;
 
     /**
-     * Additional fixed retry time in milliseconds for each retry
-     * @param runFunction
+     * Additional fixed retry time in milliseconds for each retry.
      */
     @Getter
     @Setter
@@ -54,21 +55,21 @@ public class ExponentialBackoffRetry<E extends Exception, F extends Exception, G
 
     @Override
     public void nextWait() throws InterruptedException {
-        if (nextBackoffTime==0) {
-            nextBackoffTime = System.currentTimeMillis()+backoffDuration.toMillis();
+        if (nextBackoffTime == 0) {
+            nextBackoffTime = System.currentTimeMillis() + backoffDuration.toMillis();
         }
         retryCounter++;
         long sleepTime = (long) Math.pow(base, retryCounter);
         sleepTime += extraWait;
-        float randomPart = new Random().nextFloat()*randomPortion;
-        sleepTime -= sleepTime*randomPart;
-        if (System.currentTimeMillis()+sleepTime>nextBackoffTime) {
+        float randomPart = new Random().nextFloat() * randomPortion;
+        sleepTime -= sleepTime * randomPart;
+        if (System.currentTimeMillis() + sleepTime > nextBackoffTime) {
             nextBackoffTime = 0;
             retryCounter = 1;
             sleepTime = base + extraWait;
-            sleepTime -= sleepTime*randomPart;
+            sleepTime -= sleepTime * randomPart;
         }
-        Thread.sleep(sleepTime);
+        Sleep.MILLISECONDS.sleepUninterruptibly(sleepTime);
     }
 
 }

@@ -5,6 +5,7 @@ import org.corfudb.runtime.view.Layout;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.HashSet;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,7 +25,10 @@ public class SealIT extends AbstractIT{
 
     @Test
     public void RuntimeWithWrongEpochGetUpdated() throws Exception {
-        Process corfuProcess = runCorfuServer(corfuSingleNodeHost, corfuSingleNodePort);
+        Process corfuProcess = new CorfuServerRunner()
+                .setHost(corfuSingleNodeHost)
+                .setPort(corfuSingleNodePort)
+                .runServer();
         CorfuRuntime cr1 = createDefaultRuntime();
         CorfuRuntime cr2 = createDefaultRuntime();
 
@@ -36,13 +40,21 @@ public class SealIT extends AbstractIT{
          *   3. Propose the new layout by driving paxos.
          */
 
-        Layout currentLayout = cr1.getLayoutView().getCurrentLayout();
+        Layout currentLayout = new Layout(cr1.getLayoutView().getCurrentLayout());
         /* 1 */
         currentLayout.setEpoch(currentLayout.getEpoch() + 1);
         /* 2 */
-        currentLayout.moveServersToEpoch();
+        cr1.getLayoutView().getRuntimeLayout(currentLayout).moveServersToEpoch();
         /* 3 */
         cr1.getLayoutView().updateLayout(currentLayout, 0);
+
+        cr1.invalidateLayout();
+        cr1.getLayoutView().getLayout();
+
+        cr1.getLayoutView().getRuntimeLayout()
+                .getSequencerClient(corfuSingleNodeHost + ":" + corfuSingleNodePort)
+                .bootstrap(1L, Collections.emptyMap(), currentLayout.getEpoch(), true)
+                .get();
 
 
         /* Now cr2 is still stuck in the previous epoch. The next time it will ask for a token,

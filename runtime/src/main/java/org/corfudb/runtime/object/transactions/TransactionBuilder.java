@@ -4,10 +4,11 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.corfudb.runtime.CorfuRuntime;
+import org.corfudb.runtime.Tracer;
 
 /** Helper class to build transactional contexts.
  *
- * Created by mwei on 11/21/16.
+ * <p>Created by mwei on 11/21/16.
  */
 @Accessors(chain = true)
 @Setter
@@ -37,6 +38,7 @@ public class TransactionBuilder {
      * to the builder.
      */
     public void begin() {
+        Tracer.getTracer().log("TXBegin [type] " + type.name());
         TransactionalContext.newContext(type.get.apply(this));
     }
 }

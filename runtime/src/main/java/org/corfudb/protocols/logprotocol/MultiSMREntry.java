@@ -1,6 +1,12 @@
 package org.corfudb.protocols.logprotocol;
 
 import io.netty.buffer.ByteBuf;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
@@ -9,9 +15,6 @@ import org.corfudb.protocols.wireprotocol.ILogData;
 import org.corfudb.runtime.CorfuRuntime;
 import org.corfudb.util.serializer.Serializers;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
 
 
 /**
@@ -19,23 +22,31 @@ import java.util.UUID;
  * Its primary use case is to alow a single log entry to
  * hold a sequence of updates made by a transaction, which are applied atomically.
  */
+@Deprecated // TODO: Add replacement method that conforms to style
+@SuppressWarnings("checkstyle:abbreviation") // Due to deprecation
 @ToString
 @Slf4j
 public class MultiSMREntry extends LogEntry implements ISMRConsumable {
 
     @Getter
-    List<SMREntry> updates = new ArrayList<>();
+    List<SMREntry> updates = Collections.synchronizedList(new ArrayList<>());
 
-    public MultiSMREntry() { this.type = LogEntryType.MULTISMR; }
+    public MultiSMREntry() {
+        this.type = LogEntryType.MULTISMR;
+    }
 
     public MultiSMREntry(List<SMREntry> updates) {
         this.type = LogEntryType.MULTISMR;
         this.updates = updates;
     }
 
-    public void addTo(SMREntry entry) { getUpdates().add(entry); }
+    public void addTo(SMREntry entry) {
+        getUpdates().add(entry);
+    }
 
-    public void mergeInto(MultiSMREntry other) { getUpdates().addAll(other.getUpdates()); }
+    public void mergeInto(MultiSMREntry other) {
+        getUpdates().addAll(other.getUpdates());
+    }
 
     /**
      * This function provides the remaining buffer.
@@ -46,9 +57,9 @@ public class MultiSMREntry extends LogEntry implements ISMRConsumable {
     void deserializeBuffer(ByteBuf b, CorfuRuntime rt) {
         super.deserializeBuffer(b, rt);
 
-        short numUpdates = b.readShort();
+        int numUpdates = b.readInt();
         updates = new ArrayList<>();
-        for (short i = 0; i < numUpdates; i++) {
+        for (int i = 0; i < numUpdates; i++) {
             updates.add(
                     (SMREntry) Serializers.CORFU.deserialize(b, rt));
         }
@@ -57,7 +68,7 @@ public class MultiSMREntry extends LogEntry implements ISMRConsumable {
     @Override
     public void serialize(ByteBuf b) {
         super.serialize(b);
-        b.writeShort(updates.size());
+        b.writeInt(updates.size());
         updates.stream()
                 .forEach(x -> Serializers.CORFU.serialize(x, b));
     }

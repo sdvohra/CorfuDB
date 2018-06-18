@@ -1,36 +1,52 @@
 package org.corfudb.infrastructure.log;
 
-import org.corfudb.protocols.wireprotocol.LogData;
-
 import java.io.IOException;
+import java.util.List;
+
+import org.corfudb.protocols.wireprotocol.LogData;
 
 /**
  * An interface definition that specifies an api to interact with a StreamLog.
  *
- * Created by maithem on 7/15/16.
+ * <p>Created by maithem on 7/15/16.
  */
 
 public interface StreamLog {
 
     /**
      * Append an entry to the stream log.
-     * @param logAddress
-     * @param entry
+     * @param address  address of append entry
+     * @param entry    entry to append to the log
      */
-    void append(LogAddress logAddress, LogData entry);
+    void append(long address, LogData entry);
+
+    /**
+     * Append a range of consecutive entries ordered by their addresses.
+     * Entries that are trimmed, or overwrites other addresses are ignored
+     * (i.e. they are not written) and an OverwriteException is not thrown.
+     *
+     * @param entries
+     */
+    void append(List<LogData> entries);
 
     /**
      * Given an address, read the corresponding stream entry.
-     * @param logAddress
+     * @param address  address to read from the log
      * @return Stream entry if it exists, otherwise return null
      */
-    LogData read(LogAddress logAddress);
+    LogData read(long address);
 
     /**
      * Mark a StreamLog address as trimmed.
-     * @param logAddress
+     * @param address  address to trim from the log
      */
-    void trim(LogAddress logAddress);
+    void trim(long address);
+
+    /**
+     * Prefix trim the global log.
+     * @param address address to trim the log up to
+     */
+    void prefixTrim(long address);
 
     /**
      * Remove all trimmed addresses from the StreamLog.
@@ -41,6 +57,11 @@ public interface StreamLog {
      * Get the last global address that was written.
      */
     long getGlobalTail();
+
+    /**
+     * Get the first untrimmed address in the address space.
+     */
+    long getTrimMark();
 
     /**
      * Sync the stream log file to secondary storage.
@@ -55,9 +76,14 @@ public interface StreamLog {
     void close();
 
     /**
-     * unmap/release the memory for entry
+     * unmap/release the memory for entry.
      *
-     * @param logAddress
+     * @param address  address to release
      */
-    void release(LogAddress logAddress, LogData entry);
+    void release(long address, LogData entry);
+
+    /**
+     * Clears all data and resets all segment handlers.
+     */
+    void reset();
 }

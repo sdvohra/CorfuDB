@@ -1,9 +1,12 @@
 package org.corfudb.infrastructure;
 
 import org.corfudb.protocols.wireprotocol.*;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,10 +20,27 @@ public class SequencerServerTest extends AbstractServerTest {
         super();
     }
 
+    SequencerServer server;
+
     @Override
     public AbstractServer getDefaultServer() {
-        return new
-                SequencerServer(ServerContextBuilder.emptyContext());
+        server = new SequencerServer(ServerContextBuilder.emptyContext());
+        return server;
+    }
+
+    @Before
+    public void bootstrapSequencer() {
+        server.setBootstrapEpoch(0L);
+    }
+
+    /**
+     * Verifies that the SEQUENCER_METRICS_REQUEST is responded by the SEQUENCER_METRICS_RESPONSE
+     */
+    @Test
+    public void sequencerMetricsRequest() {
+        sendMessage(CorfuMsgType.SEQUENCER_METRICS_REQUEST.msg());
+        assertThat(getLastMessage().getMsgType())
+                .isEqualTo(CorfuMsgType.SEQUENCER_METRICS_RESPONSE);
     }
 
     @Test
@@ -155,4 +175,58 @@ public class SequencerServerTest extends AbstractServerTest {
         }
     }
 
+    @Test
+    public void SequencerWillResetTails() throws Exception {
+        UUID streamA = UUID.nameUUIDFromBytes("streamA".getBytes());
+        UUID streamB = UUID.nameUUIDFromBytes("streamB".getBytes());
+        UUID streamC = UUID.nameUUIDFromBytes("streamC".getBytes());
+
+        sendMessage(new CorfuPayloadMsg<>(CorfuMsgType.TOKEN_REQ,
+                new TokenRequest(1L, Collections.singleton(streamA))));
+        long tailA = getLastPayloadMessageAs(TokenResponse.class).getToken().getTokenValue();
+
+        sendMessage(new CorfuPayloadMsg<>(CorfuMsgType.TOKEN_REQ,
+                new TokenRequest(1L, Collections.singleton(streamB))));
+        long tailB = getLastPayloadMessageAs(TokenResponse.class).getToken().getTokenValue();
+
+        sendMessage(new CorfuPayloadMsg<>(CorfuMsgType.TOKEN_REQ,
+                new TokenRequest(1L, Collections.singleton(streamC))));
+        sendMessage(new CorfuPayloadMsg<>(CorfuMsgType.TOKEN_REQ,
+                new TokenRequest(1L, Collections.singleton(streamC))));
+
+        long tailC = getLastPayloadMessageAs(TokenResponse.class).getToken().getTokenValue();
+
+        sendMessage(new CorfuPayloadMsg<>(CorfuMsgType.TOKEN_REQ,
+                new TokenRequest(0L, Collections.EMPTY_SET)));
+        long globalTail = getLastPayloadMessageAs(TokenResponse.class).getToken().getTokenValue();
+
+        // Construct new tails
+        Map<UUID, Long> tailMap = new HashMap<>();
+        long newTailA = tailA + 2;
+        long newTailB = tailB + 1;
+        // This one should not be updated
+        long newTailC = tailC - 1;
+
+        tailMap.put(streamA, newTailA);
+        tailMap.put(streamB, newTailB);
+        tailMap.put(streamC, newTailC);
+
+        // Modifying the bootstrapEpoch to simulate sequencer reset.
+        server.setBootstrapEpoch(-1L);
+        sendMessage(new CorfuPayloadMsg<>(CorfuMsgType.BOOTSTRAP_SEQUENCER,
+                new SequencerTailsRecoveryMsg(globalTail + 2, tailMap, 0L, false)));
+
+        sendMessage(new CorfuPayloadMsg<>(CorfuMsgType.TOKEN_REQ,
+                new TokenRequest(0L, Collections.singleton(streamA))));
+        assertThat(getLastPayloadMessageAs(TokenResponse.class).getToken().getTokenValue()).isEqualTo(newTailA);
+
+        sendMessage(new CorfuPayloadMsg<>(CorfuMsgType.TOKEN_REQ,
+                new TokenRequest(0L, Collections.singleton(streamB))));
+        assertThat(getLastPayloadMessageAs(TokenResponse.class).getToken().getTokenValue()).isEqualTo(newTailB);
+
+        // We should have the same value than before
+        sendMessage(new CorfuPayloadMsg<>(CorfuMsgType.TOKEN_REQ,
+                new TokenRequest(0L, Collections.singleton(streamC))));
+        assertThat(getLastPayloadMessageAs(TokenResponse.class).getToken().getTokenValue()).isEqualTo(newTailC);
+    }
 }

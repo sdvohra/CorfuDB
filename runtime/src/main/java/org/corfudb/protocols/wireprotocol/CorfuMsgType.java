@@ -1,15 +1,20 @@
 package org.corfudb.protocols.wireprotocol;
 
 import com.google.common.reflect.TypeToken;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import org.corfudb.runtime.view.Layout;
+
 import java.lang.invoke.LambdaMetafactory;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Constructor;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
+import org.corfudb.protocols.wireprotocol.orchestrator.OrchestratorMsg;
+import org.corfudb.protocols.wireprotocol.orchestrator.OrchestratorResponse;
+import org.corfudb.runtime.view.Layout;
 
 /**
  * Created by mwei on 8/8/16.
@@ -27,6 +32,7 @@ public enum CorfuMsgType {
     NACK(6, TypeToken.of(CorfuMsg.class)),
     VERSION_REQUEST(7, TypeToken.of(CorfuMsg.class), true),
     VERSION_RESPONSE(8, new TypeToken<JSONPayloadMsg<VersionInfo>>() {}, true),
+    NOT_READY(9, TypeToken.of(CorfuMsg.class), true),
 
     // Layout Messages
     LAYOUT_REQUEST(10, new TypeToken<CorfuPayloadMsg<Long>>(){}, true),
@@ -43,19 +49,26 @@ public enum CorfuMsgType {
     // Sequencer Messages
     TOKEN_REQ(20, new TypeToken<CorfuPayloadMsg<TokenRequest>>(){}),
     TOKEN_RES(21, new TypeToken<CorfuPayloadMsg<TokenResponse>>(){}),
-    RESET_SEQUENCER(22, new TypeToken<CorfuPayloadMsg<Long>>(){}),
+    BOOTSTRAP_SEQUENCER(22, new TypeToken<CorfuPayloadMsg<SequencerTailsRecoveryMsg>>(){}),
+    SEQUENCER_TRIM_REQ(23, new TypeToken<CorfuPayloadMsg<Long>>() {}),
+    SEQUENCER_METRICS_REQUEST(24, TypeToken.of(CorfuMsg.class), true),
+    SEQUENCER_METRICS_RESPONSE(25, new TypeToken<CorfuPayloadMsg<SequencerMetrics>>(){}, true),
 
     // Logging Unit Messages
     WRITE(30, new TypeToken<CorfuPayloadMsg<WriteRequest>>() {}),
     READ_REQUEST(31, new TypeToken<CorfuPayloadMsg<ReadRequest>>() {}),
     READ_RESPONSE(32, new TypeToken<CorfuPayloadMsg<ReadResponse>>() {}),
+    MULTIPLE_READ_REQUEST(35, new TypeToken<CorfuPayloadMsg<MultipleReadRequest>>() {}),
     TRIM(33, new TypeToken<CorfuPayloadMsg<TrimRequest>>() {}),
     FILL_HOLE(34, new TypeToken<CorfuPayloadMsg<TrimRequest>>() {}),
-    FORCE_GC(35, TypeToken.of(CorfuMsg.class)),
-    GC_INTERVAL(36, new TypeToken<CorfuPayloadMsg<Long>>() {}),
-    FORCE_COMPACT(37, TypeToken.of(CorfuMsg.class)),
+    PREFIX_TRIM(38, new TypeToken<CorfuPayloadMsg<TrimRequest>>() {}),
     TAIL_REQUEST(41, TypeToken.of(CorfuMsg.class), true),
     TAIL_RESPONSE(42, new TypeToken<CorfuPayloadMsg<Long>>(){}, true),
+    COMPACT_REQUEST(43, TypeToken.of(CorfuMsg.class), true),
+    FLUSH_CACHE(44, TypeToken.of(CorfuMsg.class), true),
+    TRIM_MARK_REQUEST(45, TypeToken.of(CorfuMsg.class), true),
+    TRIM_MARK_RESPONSE(46, new TypeToken<CorfuPayloadMsg<Long>>(){}, true),
+    RESET_LOGUNIT(47, TypeToken.of(CorfuMsg.class)),
 
     WRITE_OK(50, TypeToken.of(CorfuMsg.class)),
     ERROR_TRIMMED(51, TypeToken.of(CorfuMsg.class)),
@@ -63,7 +76,8 @@ public enum CorfuMsgType {
     ERROR_OOS(53, TypeToken.of(CorfuMsg.class)),
     ERROR_RANK(54, TypeToken.of(CorfuMsg.class)),
     ERROR_NOENTRY(55, TypeToken.of(CorfuMsg.class)),
-    ERROR_DATA_CORRUPTION(57, new TypeToken<CorfuPayloadMsg<ReadResponse>>() {}),
+    RANGE_WRITE(56, new TypeToken<CorfuPayloadMsg<RangeWriteMsg>>(){}),
+    ERROR_DATA_CORRUPTION(57, TypeToken.of(CorfuMsg.class)),
     ERROR_DATA_OUTRANKED(58, TypeToken.of(CorfuMsg.class)),
     ERROR_VALUE_ADOPTED(59,new TypeToken<CorfuPayloadMsg<ReadResponse>>() {}),
 
@@ -71,15 +85,26 @@ public enum CorfuMsgType {
     // EXTRA CODES
     LAYOUT_ALREADY_BOOTSTRAP(60, TypeToken.of(CorfuMsg.class), true),
     LAYOUT_PREPARE_ACK(61, new TypeToken<CorfuPayloadMsg<LayoutPrepareResponse>>(){}, true),
+    RESTART(62, TypeToken.of(CorfuMsg.class), true),
 
     // Management Messages
     MANAGEMENT_BOOTSTRAP_REQUEST(70, new TypeToken<CorfuPayloadMsg<Layout>>(){}, true),
     MANAGEMENT_NOBOOTSTRAP_ERROR(71, TypeToken.of(CorfuMsg.class), true),
     MANAGEMENT_ALREADY_BOOTSTRAP_ERROR(72, TypeToken.of(CorfuMsg.class), true),
-    MANAGEMENT_START_FAILURE_HANDLER(73, TypeToken.of(CorfuMsg.class), true),
-    MANAGEMENT_FAILURE_DETECTED(74, new TypeToken<CorfuPayloadMsg<FailureDetectorMsg>>(){}, true),
-    HEARTBEAT_REQUEST(75, TypeToken.of(CorfuMsg.class), true),
-    HEARTBEAT_RESPONSE(76, new TypeToken<CorfuPayloadMsg<byte[]>>(){}, true);
+    MANAGEMENT_HEALING_DETECTED(73, new TypeToken<CorfuPayloadMsg<DetectorMsg>>(){}, true),
+    MANAGEMENT_FAILURE_DETECTED(74, new TypeToken<CorfuPayloadMsg<DetectorMsg>>(){}, true),
+    HEARTBEAT_REQUEST(75, TypeToken.of(CorfuMsg.class)),
+    HEARTBEAT_RESPONSE(76, new TypeToken<CorfuPayloadMsg<NodeView>>(){}, true),
+    ORCHESTRATOR_REQUEST(77, new TypeToken<CorfuPayloadMsg<OrchestratorMsg>>() {}, true),
+    ORCHESTRATOR_RESPONSE(78, new TypeToken<CorfuPayloadMsg<OrchestratorResponse>>() {}, true),
+
+    ERROR_SERVER_EXCEPTION(200, new TypeToken<CorfuPayloadMsg<ExceptionMsg>>() {}, true),
+    ERROR_SHUTDOWN_EXCEPTION(201, TypeToken.of(CorfuMsg.class), true),
+
+    // Handshake Messages
+    HANDSHAKE_INITIATE(80, new TypeToken<CorfuPayloadMsg<HandshakeMsg>>() {}, true),
+    HANDSHAKE_RESPONSE(81, new TypeToken<CorfuPayloadMsg<HandshakeResponse>>() {}, true)
+    ;
 
 
     public final int type;
@@ -101,7 +126,7 @@ public enum CorfuMsgType {
         T construct();
     }
 
-    @Getter(lazy=true)
+    @Getter(lazy = true)
     private final MessageConstructor<? extends CorfuMsg> constructor = resolveConstructor();
 
     public byte asByte() {
@@ -120,8 +145,9 @@ public enum CorfuMsgType {
             MethodHandle mh = lookup.unreflectConstructor(t);
             MethodType mt = MethodType.methodType(Object.class);
             try {
-                return (MessageConstructor<? extends CorfuMsg>) LambdaMetafactory.metafactory(lookup,
-                        "construct", MethodType.methodType(MessageConstructor.class),
+                return (MessageConstructor<? extends CorfuMsg>) LambdaMetafactory.metafactory(
+                        lookup, "construct",
+                        MethodType.methodType(MessageConstructor.class),
                         mt, mh, mh.type())
                         .getTarget().invokeExact();
             } catch (Throwable th) {
