@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
 import numpy as np
 
 input_path = "/Users/vshriya/Desktop/current/CorfuDB/test/client-1529017385323.log"
@@ -312,9 +313,30 @@ def count_all_ops_time():
             counts[get_event_name(point)] += get_duration(point)
 
     # Create pie chart
-    plt.pie(counts.values(), labels=counts.keys(), colors=['gold', 'yellowgreen', 'lightcoral', 'lightskyblue'],
-            autopct='%1.1f%%')
+    colors = ["#67E568","#257F27","#08420D","#FFF000","#FFB62B","#E56124","#E53E30","#7F2353","#F911FF","#9F8CA6"]
+
+    fig = plt.figure(figsize=[10, 10])
+    ax = fig.add_subplot(111)
+
+    slices = []
+    labels = []
+    for key, value in sorted(counts.iteritems(), key=lambda (k, v): (v, k)):
+        labels += [key]
+        slices += [value]
+        print "%s: %s" % (key, value)
+
+    labels2 = []
+    for item in labels:
+        item += "\n" + str(counts[item])
+        print(item)
+        labels2 += [item]
+
+    pie_wedge_collection = ax.pie(slices, colors=colors, labels=labels2, pctdistance=0.7, radius=3, autopct='%1.1f%%')
     plt.axis('equal')
+
+    for pie_wedge in pie_wedge_collection[0]:
+        pie_wedge.set_edgecolor('white')
+
     plt.savefig(output_path + "count_all_ops_time.png", bbox_inches='tight')
     plt.clf()
 
@@ -423,9 +445,9 @@ setup()
 # count_seq_calls()
 # count_ops_per_tx()
 # count_table_ops_per_tx(["containsKey"], ["put"])
-count_id_table_ops_per_tx(["containsKey"], ["put"], "7c4f2940-7893-3334-a6cb-7a87bf045c0d")
+# count_id_table_ops_per_tx(["containsKey"], ["put"], "7c4f2940-7893-3334-a6cb-7a87bf045c0d")
 # count_all_ops()
-# count_all_ops_time()
+count_all_ops_time()
 # count_all_ops_time_by_tx()
 # count_reads()
 dur_tot = 0
