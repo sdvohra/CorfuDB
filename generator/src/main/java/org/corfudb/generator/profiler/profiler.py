@@ -34,15 +34,10 @@ def get_event_name(entry):
     return entry.split()[3].split()[0]
 
 
-def get_table_ID(entry):
-    if "[id]" not in entry:
-        raise TypeError("entry is not a table")
-    if "[id]" in entry:
-        return entry.split("[id] ")[1].split()[0]
-
-
 def get_duration(entry):
-    return int(entry.split("[dur] ")[1].split()[0])
+    if "[dur]" not in entry:
+        return 0
+    return int(entry.split("[dur]")[1].split()[0])
 
 
 def nano_to_milli(time):
@@ -143,16 +138,20 @@ def count_ops_per_tx():
     plt.title("Num Ops per Transaction")
     plt.xlabel("Num Ops")
     plt.ylabel("Num Txs")
-    plt.savefig(output_path + "count_ops_per_tx_bar.png", bbox_inches='tight')
+    plt.savefig(output_path + "count_ops_per_tx.png", bbox_inches='tight')
     plt.clf()
 
 
-def count_table_ops_per_tx():
+def count_table_ops_per_tx(access_ops, mutate_ops):  # access_ops, mutate_ops = list of strings with names of ops
+    '''
+    Answers query: how many read/write table operations are performed per transaction?
+    Creates a double bar graph
+    '''
     print 4
-    counts_access = {} # thread num --> count of access ops
-    counts_mutate = {} # thread num --> count of mutate ops
-    num_access_ops = []
-    num_mutate_ops = []
+    counts_access = {}  # thread num --> count of access ops
+    counts_mutate = {}  # thread num --> count of mutate ops
+    num_access_ops = []  # contains total number of access ops in each tx
+    num_mutate_ops = []  # contains total number of mutate ops in each tx
     for point in points:
         if get_event_name(point) == "TXBegin":
             counts_access[get_thread_ID(point)] = 0
@@ -162,27 +161,17 @@ def count_table_ops_per_tx():
             num_mutate_ops += [counts_mutate[get_thread_ID(point)]]
             counts_access[get_thread_ID(point)] = 0
             counts_mutate[get_thread_ID(point)] = 0
-        elif "[method] containsKey" in point and get_thread_ID(point) in counts_access:
-            counts_access[get_thread_ID(point)] += 1
-        elif "[method] put" in point and get_thread_ID(point) in counts_mutate:
-            counts_mutate[get_thread_ID(point)] += 1
+        else:
+            for op in access_ops:
+                if "[method] " + op in point and get_thread_ID(point) in counts_access:
+                    counts_access[get_thread_ID(point)] += 1
+                    break
+            for op in mutate_ops:
+                if "[method] " + op in point and get_thread_ID(point) in counts_mutate:
+                    counts_mutate[get_thread_ID(point)] += 1
+                    break
 
-    # create juxtaposed scatter plot
-    x1 = num_access_ops
-    y1 = [0 for _ in x1]
-    plt.scatter(x1, y1, color='green', alpha=0.5, label="accessOps")
-
-    x2 = num_mutate_ops
-    y2 = [0 for _ in x2]
-    plt.scatter(x2, y2, alpha=0.5, label="mutateOps")
-
-    plt.title("Comparison")
-    plt.xlabel("#")
-    plt.legend(loc=1)
-    plt.savefig(output_path + "count_table_ops_per_tx_scatter.png", bbox_inches='tight')
-    plt.clf()
-
-    # create double bar chart
+    # Count frequency of each number of ops
     num_num_access_ops = {}  # number --> number of times that number appears
     for n in num_access_ops:
         if n not in num_num_access_ops:
@@ -197,33 +186,38 @@ def count_table_ops_per_tx():
         else:
             num_num_mutate_ops[n] += 1
 
+    # Create double bar chart
     x = np.array(list(set(num_num_access_ops.keys()).union(set(num_num_mutate_ops.keys()))))
-    y1 = []
-    y2 = []
+    y_access = []
+    y_mutate = []
     for item in x:
         if item not in num_num_access_ops:
             num_num_access_ops[item] = 0
         if item not in num_num_mutate_ops:
             num_num_mutate_ops[item] = 0
-        y1 += [num_num_access_ops[item]]
-        y2 += [num_num_mutate_ops[item]]
+        y_access += [num_num_access_ops[item]]
+        y_mutate += [num_num_mutate_ops[item]]
     width = 0.27
-    plt.bar(x, y1, width, color="blue", label="accessOps")
-    plt.bar(x + width, y2, width, color="red", label="mutateOps")
+    plt.bar(x, y_access, width, color="blue", label="accessOps")
+    plt.bar(x + width, y_mutate, width, color="red", label="mutateOps")
     plt.legend(loc=1)
     plt.title("Num Ops per Transaction")
     plt.xlabel("Num Ops")
     plt.ylabel("Num Txs")
-    plt.savefig(output_path + "count_table_ops_per_tx_bar.png", bbox_inches='tight')
+    plt.savefig(output_path + "count_table_ops_per_tx.png", bbox_inches='tight')
     plt.clf()
 
 
-def count_id_table_ops_per_tx(table_id):
+def count_id_table_ops_per_tx(access_ops, mutate_ops,table_id):
+    '''
+    Answers query: how many read/write table operations are performed on a given table per transaction?
+    Creates a double bar graph
+    '''
     print 5
-    counts_access = {} # thread num --> count of access ops
-    counts_mutate = {} # thread num --> count of mutate ops
-    num_access_ops = []
-    num_mutate_ops = []
+    counts_access = {}  # thread num --> count of access ops
+    counts_mutate = {}  # thread num --> count of mutate ops
+    num_access_ops = []  # contains total number of access ops in each tx
+    num_mutate_ops = []  # contains total number of mutate ops in each tx
     for point in points:
         if get_event_name(point) == "TXBegin":
             counts_access[get_thread_ID(point)] = 0
@@ -233,29 +227,17 @@ def count_id_table_ops_per_tx(table_id):
             num_mutate_ops += [counts_mutate[get_thread_ID(point)]]
             counts_access[get_thread_ID(point)] = 0
             counts_mutate[get_thread_ID(point)] = 0
-        elif "[method] containsKey" in point and get_thread_ID(point) in counts_access:
-            if table_id in point:
-                counts_access[get_thread_ID(point)] += 1
-        elif "[method] put" in point and get_thread_ID(point) in counts_mutate:
-            if table_id in point:
-                counts_mutate[get_thread_ID(point)] += 1
+        elif table_id in point:
+            for op in access_ops:
+                if "[method] " + op in point and get_thread_ID(point) in counts_access:
+                    counts_access[get_thread_ID(point)] += 1
+                    break
+            for op in mutate_ops:
+                if "[method] " + op in point and get_thread_ID(point) in counts_mutate:
+                    counts_mutate[get_thread_ID(point)] += 1
+                    break
 
-    # create juxtaposed scatter plot
-    x1 = num_access_ops
-    y1 = [0 for _ in x1]
-    plt.scatter(x1, y1, color='green', alpha=0.5, label="accessOps")
-
-    x2 = num_mutate_ops
-    y2 = [0 for _ in x2]
-    plt.scatter(x2, y2, alpha=0.5, label="mutateOps")
-
-    plt.title("Comparison")
-    plt.xlabel("#")
-    plt.legend(loc=1)
-    plt.savefig(output_path + "count_id_table_ops_per_tx_scatter.png", bbox_inches='tight')
-    plt.clf()
-
-    # create double bar chart
+    # Count frequency of each number of ops
     num_num_access_ops = {}  # number --> number of times that number appears
     for n in num_access_ops:
         if n not in num_num_access_ops:
@@ -270,24 +252,25 @@ def count_id_table_ops_per_tx(table_id):
         else:
             num_num_mutate_ops[n] += 1
 
+    # Create double bar chart
     x = np.array(list(set(num_num_access_ops.keys()).union(set(num_num_mutate_ops.keys()))))
-    y1 = []
-    y2 = []
+    y_access = []
+    y_mutate = []
     for item in x:
         if item not in num_num_access_ops:
             num_num_access_ops[item] = 0
         if item not in num_num_mutate_ops:
             num_num_mutate_ops[item] = 0
-        y1 += [num_num_access_ops[item]]
-        y2 += [num_num_mutate_ops[item]]
+        y_access += [num_num_access_ops[item]]
+        y_mutate += [num_num_mutate_ops[item]]
     width = 0.27
-    plt.bar(x, y1, width, color="blue", label="accessOps")
-    plt.bar(x + width, y2, width, color="red", label="mutateOps")
+    plt.bar(x, y_access, width, color="blue", label="accessOps")
+    plt.bar(x + width, y_mutate, width, color="red", label="mutateOps")
     plt.legend(loc=1)
     plt.title("Num Ops per Transaction")
     plt.xlabel("Num Ops")
     plt.ylabel("Num Txs")
-    plt.savefig(output_path + "count_id_table_ops_per_tx_bar.png", bbox_inches='tight')
+    plt.savefig(output_path + "count_id_table_ops_per_tx.png", bbox_inches='tight')
     plt.clf()
 
 
@@ -354,7 +337,10 @@ def count_all_ops_time_by_tx():
 
         # only consider ops that are part of a tx
         if get_thread_ID(point) in in_tx and in_tx[get_thread_ID(point)]:
-            if get_event_name(point) not in counts:
+            if get_thread_ID(point) not in counts:
+                counts[get_thread_ID(point)] = {}
+
+            if get_event_name(point) not in counts[get_thread_ID(point)]:
                 counts[get_thread_ID(point)][get_event_name(point)] = get_duration(point)
             else:
                 counts[get_thread_ID(point)][get_event_name(point)] += get_duration(point)
@@ -427,18 +413,24 @@ def count_reads():
     plt.xlabel("Time Elapsed (ms)")
     plt.ylabel("Number of Reads")
     plt.legend(loc=1)
-    plt.savefig(output_path + "count_reads_scatter.png", bbox_inches='tight')
+    plt.savefig(output_path + "count_reads.png", bbox_inches='tight')
     plt.clf()
 
 
 ### Display Results
 setup()
-count_active_threads()
-count_seq_calls()
-count_ops_per_tx()
-count_table_ops_per_tx()
-count_id_table_ops_per_tx("7c4f2940-7893-3334-a6cb-7a87bf045c0d")
-count_all_ops()
-count_all_ops_time()
-count_all_ops_time_by_tx()
-count_reads()
+# count_active_threads()
+# count_seq_calls()
+# count_ops_per_tx()
+# count_table_ops_per_tx(["containsKey"], ["put"])
+count_id_table_ops_per_tx(["containsKey"], ["put"], "7c4f2940-7893-3334-a6cb-7a87bf045c0d")
+# count_all_ops()
+# count_all_ops_time()
+# count_all_ops_time_by_tx()
+# count_reads()
+dur_tot = 0
+for point in points:
+    # print(get_duration(point))
+    dur_tot += get_duration(point)
+print("Timestamps: ", get_time_stamp(points[len(points) - 1]) - get_time_stamp(points[0]))
+print("Adding up all durs: ", dur_tot)
