@@ -303,22 +303,26 @@ def count_all_ops_time():
     '''
     print 7
     # Count total time taken by each op
-    counts = {}  # op name --> (total time taken, number of occurrences)
+    counts = {}  # op name --> list of durations
     for point in points:
         if get_event_name(point) not in counts:
-            counts[get_event_name(point)] = (get_duration(point), 1)
+            counts[get_event_name(point)] = [nano_to_milli(get_duration(point))]
         else:
-            counts[get_event_name(point)] = (counts[get_event_name(point)][0] + get_duration(point),
-                                             counts[get_event_name(point)][1] + 1)
+            counts[get_event_name(point)] += [nano_to_milli(get_duration(point))]
+
     # Average out time for each op
     total_time = 0
+    std = {}  # op name --> std dev
+
     for op in counts:  # counts: op name --> avg time taken per call of op
-        counts[op] = nano_to_milli(counts[op][0] / (counts[op][1] * 1.0))
+        std[op] = np.std(counts[op])
+        counts[op] = sum(counts[op]) / (len(counts[op]) * 1.0)
         total_time += counts[op]
 
     # Create pie chart
     values = []
     labels = []
+    error = []
     other = 0
     for key, value in sorted(counts.iteritems(), key=lambda (k, v): (v, k)):
         if value / (1.0 * total_time) < 0.015:
@@ -326,8 +330,10 @@ def count_all_ops_time():
             continue
         labels += [key + "\n" + str(value) + " ms"]  # label = name of op + time taken by op (ms) [string]
         values += [value]  # value = time taken by op
+        error += [std[key]]
     labels += ["Other\n" + str(other) + " ms"]
     values += [other]
+    error += [0]
 
     colors = plt.cm.Set2(np.array([(i - len(labels) / 16) / (len(labels) * 2.0) for i in range(0, 2*len(labels), 2)]))
     fig = plt.figure(figsize=[10, 10])
@@ -342,31 +348,48 @@ def count_all_ops_time():
     plt.savefig(output_path + "count_all_ops_time.png", bbox_inches='tight')
     plt.clf()
 
-    # Create bar graph
+    # Create bar graph with error
     plt.rcdefaults()
     fig, ax = plt.subplots()
 
     labels = [l.split("\n")[0] for l in labels]
     y_pos = np.arange(len(labels))
 
-    r = ax.barh(y_pos, values, align='center',
-            color=colors, ecolor='black')
+    r = ax.barh(y_pos, values, xerr=error, align='center', color=colors, ecolor='black')
     ax.set_yticks(y_pos)
     ax.set_yticklabels(labels)
     ax.invert_yaxis()  # labels read top-to-bottom
     ax.set_xlabel('Time (ms)')
     ax.set_title('Average Runtime per Call')
 
-    def autolabel(rects):
-        for rect in rects:
-            width = rect.get_width()
-            plt.text(rect.get_width() + 2, rect.get_y() + 0.5 * rect.get_height(),
-                     '%f' % width,
-                     ha='center', va='center')
+    for rect in r:
+        width = rect.get_width()
+        plt.text(rect.get_width() + 2, rect.get_y() + 0.5 * rect.get_height(),
+                 '%f' % width, ha='center', va='center')
 
-    autolabel(r)
+    plt.savefig(output_path + "count_all_ops_time_bar_error.png", bbox_inches='tight')
+    plt.clf()
 
-    plt.savefig(output_path + "bar_test.png", bbox_inches='tight')
+    # Create bar graph without error
+    plt.rcdefaults()
+    fig, ax = plt.subplots()
+
+    labels = [l.split("\n")[0] for l in labels]
+    y_pos = np.arange(len(labels))
+
+    r = ax.barh(y_pos, values, align='center', color=colors, ecolor='black')
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(labels)
+    ax.invert_yaxis()  # labels read top-to-bottom
+    ax.set_xlabel('Time (ms)')
+    ax.set_title('Average Runtime per Call')
+
+    for rect in r:
+        width = rect.get_width()
+        plt.text(rect.get_width() + 2, rect.get_y() + 0.5 * rect.get_height(),
+                 '%f' % width, ha='center', va='center')
+
+    plt.savefig(output_path + "count_all_ops_time_bar.png", bbox_inches='tight')
     plt.clf()
 
 
