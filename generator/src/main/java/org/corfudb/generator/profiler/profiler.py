@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-from matplotlib.gridspec import GridSpec
 import numpy as np
 
 input_path = "/Users/vshriya/Desktop/current/CorfuDB/test/client-1529017385323.log"
@@ -299,44 +298,47 @@ def count_all_ops():
 
 def count_all_ops_time():
     '''
-    Answers the query: how much time did each operation take w.r.t. the total runtime?
+    Answers the query: how much time did a single call of each operation take on average?
     Creates a pie chart
     '''
     print 7
     # Count total time taken by each op
-    # NOT CORRECT - double counts things in threads!!!
-    counts = {}  # op name --> total time taken by this op
+    counts = {}  # op name --> (total time taken, number of occurrences)
     for point in points:
         if get_event_name(point) not in counts:
-            counts[get_event_name(point)] = get_duration(point)
+            counts[get_event_name(point)] = (get_duration(point), 1)
         else:
-            counts[get_event_name(point)] += get_duration(point)
+            counts[get_event_name(point)] = (counts[get_event_name(point)][0] + get_duration(point),
+                                             counts[get_event_name(point)][1] + 1)
+    # Average out time for each op
+    total_time = 0
+    for op in counts:  # counts: op name --> avg time taken per call of op
+        counts[op] = nano_to_milli(counts[op][0] / (counts[op][1] * 1.0))
+        total_time += counts[op]
 
     # Create pie chart
-    colors = ["#67E568","#257F27","#08420D","#FFF000","#FFB62B","#E56124","#E53E30","#7F2353","#F911FF","#9F8CA6"]
+    values = []
+    labels = []
+    other = 0
+    for key, value in sorted(counts.iteritems(), key=lambda (k, v): (v, k)):
+        if value / (1.0 * total_time) < 0.015:
+            other += value
+            continue
+        labels += [key + "\n" + str(value) + " ms"]  # label = name of op + time taken by op (ms) [string]
+        values += [value]  # value = time taken by op
+    labels += ["Other\n" + str(other)]
+    values += [other]
 
+    colors = plt.cm.Set2(np.array([(i - len(labels) / 16) / (len(labels) * 2.0) for i in range(0, 2*len(labels), 2)]))
     fig = plt.figure(figsize=[10, 10])
     ax = fig.add_subplot(111)
 
-    slices = []
-    labels = []
-    for key, value in sorted(counts.iteritems(), key=lambda (k, v): (v, k)):
-        labels += [key]
-        slices += [value]
-        print "%s: %s" % (key, value)
+    pie_wedge_collection = ax.pie(values, colors=colors, labels=labels, pctdistance=0.7, radius=3, autopct='%1.1f%%')
 
-    labels2 = []
-    for item in labels:
-        item += "\n" + str(counts[item])
-        print(item)
-        labels2 += [item]
-
-    pie_wedge_collection = ax.pie(slices, colors=colors, labels=labels2, pctdistance=0.7, radius=3, autopct='%1.1f%%')
     plt.axis('equal')
-
     for pie_wedge in pie_wedge_collection[0]:
         pie_wedge.set_edgecolor('white')
-
+    fig.text(.5, .05, "Total Time: " + str(total_time) + " ms", ha='center', fontweight="bold")
     plt.savefig(output_path + "count_all_ops_time.png", bbox_inches='tight')
     plt.clf()
 
@@ -450,9 +452,3 @@ setup()
 count_all_ops_time()
 # count_all_ops_time_by_tx()
 # count_reads()
-dur_tot = 0
-for point in points:
-    # print(get_duration(point))
-    dur_tot += get_duration(point)
-print("Timestamps: ", get_time_stamp(points[len(points) - 1]) - get_time_stamp(points[0]))
-print("Adding up all durs: ", dur_tot)
