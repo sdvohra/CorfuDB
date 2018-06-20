@@ -326,7 +326,7 @@ def count_all_ops_time():
             continue
         labels += [key + "\n" + str(value) + " ms"]  # label = name of op + time taken by op (ms) [string]
         values += [value]  # value = time taken by op
-    labels += ["Other\n" + str(other)]
+    labels += ["Other\n" + str(other) + " ms"]
     values += [other]
 
     colors = plt.cm.Set2(np.array([(i - len(labels) / 16) / (len(labels) * 2.0) for i in range(0, 2*len(labels), 2)]))
@@ -340,6 +340,33 @@ def count_all_ops_time():
         pie_wedge.set_edgecolor('white')
     fig.text(.5, .05, "Total Time: " + str(total_time) + " ms", ha='center', fontweight="bold")
     plt.savefig(output_path + "count_all_ops_time.png", bbox_inches='tight')
+    plt.clf()
+
+    # Create bar graph
+    plt.rcdefaults()
+    fig, ax = plt.subplots()
+
+    labels = [l.split("\n")[0] for l in labels]
+    y_pos = np.arange(len(labels))
+
+    r = ax.barh(y_pos, values, align='center',
+            color=colors, ecolor='black')
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(labels)
+    ax.invert_yaxis()  # labels read top-to-bottom
+    ax.set_xlabel('Time (ms)')
+    ax.set_title('Average Runtime per Call')
+
+    def autolabel(rects):
+        for rect in rects:
+            width = rect.get_width()
+            plt.text(rect.get_width() + 2, rect.get_y() + 0.5 * rect.get_height(),
+                     '%f' % width,
+                     ha='center', va='center')
+
+    autolabel(r)
+
+    plt.savefig(output_path + "bar_test.png", bbox_inches='tight')
     plt.clf()
 
 
